@@ -171,7 +171,7 @@ docker compose --env-file .env -f docker-compose-example.yaml logs -f backend-in
 
 ## 许可证
 
-本项目以 GNU GPL v3.0（GPL-3.0-only）授权，详见 [LICENSE](./LICENSE)。为保留上游源码中原有的版权和许可声明，旧版 MIT 许可文本也保存在 [LICENSES/MIT-legacy.txt](./LICENSES/MIT-legacy.txt)。
+本项目以 GNU GPL v3.0（GPL-3.0-only）授权，详见 [LICENSE](./LICENSE)。
 
 ## 部署提醒
 
