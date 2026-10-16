@@ -11,7 +11,6 @@ CodataAdmin is not just an admin template. It is the governance and control laye
 | Area | What it covers |
 |---|---|
 | System and access | Users, roles, menus, departments, positions, parameters, dictionaries, notices, logs, files, tickets |
-| Platform operations | Tenants, packages, plugins, email, orders, invoices, self-service |
 | AI and tasks | AI config, chat, memory, scheduled jobs, workflow |
 | Semantic governance | Catalogs, domains, entities, semantic fields, semantic models, JOINs, indicators, dimensions, knowledge |
 | Trusted querying | Model release snapshots, semantic retrieval, indicator queries, read-only SQL execution, MCP server |
