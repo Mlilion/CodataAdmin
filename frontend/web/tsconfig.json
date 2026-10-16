@@ -1,0 +1,45 @@
+{
+  "compilerOptions": {
+    "target": "ES2020",
+    "module": "ESNext",
+    "moduleResolution": "bundler",
+    "strict": true,
+    "noUncheckedIndexedAccess": true,
+    "noImplicitOverride": true,
+    "noFallthroughCasesInSwitch": true,
+    "jsx": "preserve",
+    "sourceMap": true,
+    "resolveJsonModule": true,
+    "esModuleInterop": true,
+    "allowImportingTsExtensions": true,
+    "isolatedModules": true,
+    "noEmit": true,
+    "lib": ["ES2024", "DOM", "DOM.Iterable"],
+    "types": ["vite/client", "node"],
+    "skipLibCheck": true,
+    "paths": {
+      "@/*": ["./src/*"],
+      "@views/*": ["./src/views/*"],
+      "@imgs": ["./src/assets/images"],
+      "@icons": ["./src/assets/images/svg"],
+      "@utils": ["./src/utils"],
+      "@utils/*": ["./src/utils/*"],
+      "@stores": ["./src/store"],
+      "@stores/*": ["./src/store/*"],
+      "@plugins": ["./src/plugins"],
+      "@styles": ["./src/styles"],
+      "@api/*": ["./src/api/*"],
+      "@fa_imgs/*": ["./src/assets/fa_imgs/*"],
+      "@fa_imgs": ["./src/assets/fa_imgs"]
+    }
+  },
+  "include": [
+    "src/**/*.ts",
+    "src/**/*.d.ts",
+    "src/types/import/*.d.ts",
+    "src/**/*.tsx",
+    "src/**/*.vue",
+    "build/vitePluginStart.ts"
+  ],
+  "exclude": ["node_modules", "dist"]
+}

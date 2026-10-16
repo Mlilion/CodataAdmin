@@ -1,0 +1,25 @@
+// ============================================================
+// 全局样式入口（src/styles/index.scss）
+// ============================================================
+// 目录结构：
+//   core/         全局基础（重置、mixin、Tailwind、tokens）
+//   element-plus/ EP 主题与样式覆写（theme / overrides / dark）
+//   animations/   全局动画（路由切换、主题切换）
+//   vendors/      第三方组件样式覆写（highlight.js、markdown）
+//   custom/       业务页专属样式
+// ============================================================
+
+// ---------- core/ ----------
+@use "./core/reset";
+@use "./core/app";
+
+// ---------- element-plus/ ----------
+// Element Plus 组件样式覆写（按钮、弹窗、表格等）
+@use "./element-plus/overrides";
+// 暗黑主题
+@use "./element-plus/dark";
+
+// ---------- animations/ ----------
+@use "./animations/router-transition";
+@use "./animations/theme-change";
+@use "./animations/theme-animation";

@@ -1,0 +1,69 @@
+-- 跨实体维度下钻：治理侧启用说明（本补丁不改任何数据，仅作部署记录）
+--
+-- ★ 注释里不要写分号（按分号切语句的执行器会在注释中间截断，本目录下已踩过两次）
+-- 幂等：只有一条 SELECT，重复执行无任何副作用
+--
+-- ## 背景
+--
+-- 受控两表 JOIN 编译已上线（设计见
+-- docs/superpowers/specs/2026-08-04-controlled-join-compile-design.md，
+-- 实施记录见 docs/superpowers/specs/2026-07-31-semantic-retrieval-pg-design.md 的 23 节）。
+-- 指标现在可以按「不在主实体上的维度」拆分，比如按用户城市看订阅收入。
+--
+-- ## ★★ 但它需要治理侧做一件事才可达
+--
+-- 把那些跨实体维度加进指标的 available_dimension_ids（即前端「指标 → 可用维度」）。
+-- 该字段是**纯人工维护**的，代码里没有任何自动填充（indicator/service.py 没有，
+-- 别处也没有）。检索取数的校验器规则 2 拿它当**硬白名单**，不在名单里的维度
+-- 一律报 dimension_allowed 拒绝，压根走不到 JOIN 编译那一步。
+--
+-- dev 实测（commercial_revenue 最新 Release 快照，20 指标 / 29 维度）：
+-- **20/20 个指标的白名单里跨实体维度数 = 0** —— 即不勾就等于这个功能没上。
+--
+-- 「有能力但没人打开它」与「没有这个能力」对使用者是同一种体验。保留本文件是为了让
+-- 部署清单里有这一步的痕迹（见 backend/docs/semantic-deploy-checklist.md 第 7b 步）。
+--
+-- ## 怎么加
+--
+-- 前端 语义中心 → **指标管理** → 编辑目标指标 →「可用维度」
+-- 勾选目标维度 → 保存 → **回到语义模型页重新发布**。
+--
+-- ★ 路径核实过：「可用维度」控件（DimensionMultiSelect）只在**指标管理**页上
+--   （frontend/web/src/views/module_semantic/indicator/index.vue:119-120）。
+--   语义模型页的指标节点是**只读检视面板**，没有这个控件 —— 照"模型页里改指标"
+--   去点会找不到。菜单名就叫「指标管理」（2026-07-17-semantic-menu.sql）。
+-- 白名单进 Release 快照，不重新发布则 agent 侧看不到（它读的是快照，不是草稿）。
+--
+-- ## 加之前先确认这条组合真的能用（否则勾了也只是换一种拒绝理由）
+--
+-- 1) 维度所属实体与指标主实体之间要有**恰好一条**已发布的 JOIN 关系
+--    多条 → ambiguous_join（我们的 sem_join 没有 confidence 字段，不做静默选边）
+--    没有 → multi_hop_unsupported（只支持一跳，绝不生成 CROSS JOIN）
+--
+-- 2) 若那条关系**定向到主实体侧之后**是 one_to_many / many_to_many，
+--    则只有去重计数类指标（COUNT DISTINCT 形态）能用。
+--    SUM / AVG / COUNT(*) 会被 fanout_refused 拒绝 —— 真实数仓实测
+--    （2026-07-01 至 07-07，order_revenue 经 one_to_many 关联 iap_bill_detail）：
+--        SUM(final_revenue)        524147.88 → 628096.97（虚增 19.8%）
+--        COUNT(DISTINCT order_id)  39621     → 39621（不变）
+--    两条 SQL 都 ok、都过 EXPLAIN、没有任何一层报错 —— 所以必须拦在编译前。
+--
+-- 3) 指标的权威口径必须是**单层单表简单聚合**。含 CTE / 子查询 / 多表 / 多聚合，
+--    或**口径自带 GROUP BY**（dev 的 order_cnt 就是：
+--    SELECT order_type, COUNT(DISTINCT order_id) ... GROUP BY order_type）
+--    的，一律 not_decomposable 拒绝。
+--    ★★ 别按设计文档 3 节表格里"14 个维度完全可用"那个数字做预期：那个数只数了维度、
+--    没算指标侧的口径形态。Task 5 在 dev 上穷举 20 指标 × 全部跨实体维度 = 350 组，
+--    215 组成功编译、**85 组因 not_decomposable 被拒**（另 20 组 fanout_refused、
+--    16 组 multi_hop_unsupported、14 组 bind 即口径占位符填不上）。
+--    也就是说"某维度可用"要连着指标一起看，是**组合**级别的判断。
+--
+-- 4) 该组合暂不支持：附加 filters、同时点多个维度（含主实体维度 + 跨实体维度混点）。
+--    这些都会被显式拒绝并给出可行动的 allowed，不会静默丢条件。
+--
+-- 建议先勾一个明确安全的组合验证链路通不通：主实体 → many_to_one → 维度表
+-- （dev 的 dim_user_* / dim_date 派生 / dim_continent 均属此类），
+-- 用 query_indicator 实跑一次，确认返回的 caliber.warnings 与数字都合理，再批量铺开。
+--
+-- 无需执行任何 DDL/DML。
+SELECT 'cross-entity dimension drill-down: enable via indicator available_dimensions, then re-publish the model' AS note;

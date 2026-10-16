@@ -1,0 +1,469 @@
+<!-- 登录页：顶栏固定；登录卡片居中 -->
+<template>
+  <div class="login-page-root flex h-screen w-full flex-col overflow-hidden">
+    <FaLoginCenterBackdrop viewport-fixed />
+    <FaAuthTopBar />
+
+    <div class="login-auth-split login-auth-split--center relative z-1 flex min-h-0 flex-1 overflow-hidden">
+      <div
+        class="login-auth-split__col login-auth-split__col--form login-page-panel relative flex min-h-0 min-w-0 flex-col bg-transparent"
+      >
+        <div
+          class="login-page-panel__main relative z-1 flex min-h-0 flex-1 flex-col overflow-hidden px-5 pb-2 pt-14 md:px-10 md:pt-18"
+        >
+          <ElScrollbar>
+            <div class="login-page-panel__scroll login-page-panel__scroll--centered pb-6">
+              <div
+                class="login-panel-align-row flex w-full items-center justify-center max-sm:min-h-0"
+              >
+                <div class="auth-right-wrap">
+                  <div class="form">
+                    <div class="form-intro">
+                      <h3 class="title">{{ panelTitle }}</h3>
+                    </div>
+
+                    <template v-if="authPanel === 'login'">
+                      <template v-if="loginFlowMode === 'account'">
+                        <FaLoginAccountForm
+                          ref="accountFormRef"
+                          v-model:login-form="loginForm"
+                          :rules="rules"
+                          :form-key="formKey"
+                          :loading="loading"
+                          @submit="handleSubmit"
+                          @open-mobile="openMobileLogin"
+                          @open-qr="openQrLogin"
+                          @forget="setAuthPanel('forget')"
+                          @register="setAuthPanel('register')"
+                          @oauth="handleOAuthLogin"
+                        />
+                      </template>
+
+                      <FaLoginMobilePanel
+                        v-else-if="SHOW_SAAS_AUTH && loginFlowMode === 'mobile'"
+                        @back="backToAccountLogin"
+                        @register="setAuthPanel('register')"
+                      />
+
+                      <FaLoginQrPanel
+                        v-else-if="SHOW_SAAS_AUTH && loginFlowMode === 'qr'"
+                        @back="backToAccountLogin"
+                        @register="setAuthPanel('register')"
+                      />
+                    </template>
+
+                    <FaLoginRegisterPanel
+                      v-else-if="SHOW_SAAS_AUTH && authPanel === 'register'"
+                      ref="registerPanelRef"
+                      v-model:register-agreement-read="registerAgreementRead"
+                      v-model:register-form="registerForm"
+                      :register-rules="registerRules"
+                      :form-key="formKey"
+                      :register-loading="registerLoading"
+                      :show-email="true"
+                      :user-agreement-href="userAgreementHref"
+                      @submit="submitRegister"
+                      @to-login="setAuthPanel('login')"
+                    />
+
+                    <FaLoginForgetPanel
+                      v-else
+                      ref="forgetPanelRef"
+                      v-model:forget-form="forgetForm"
+                      :forget-rules="forgetRules"
+                      :form-key="formKey"
+                      :forget-loading="forgetLoading"
+                      @submit="submitForget"
+                      @to-login="setAuthPanel('login')"
+                    />
+                  </div>
+                </div>
+              </div>
+            </div>
+          </ElScrollbar>
+        </div>
+
+        <footer
+          class="login-page-footer login-page-footer--pinned shrink-0 pb-[max(0.75rem,env(safe-area-inset-bottom))] pt-3"
+        >
+          <div class="login-footer-text text-sm">
+            <div class="login-footer-row">
+              <a
+                :href="configStore.configData?.git_code?.config_value || '#'"
+                target="_blank"
+                rel="noopener noreferrer"
+                class="login-page-footer__link"
+              >
+                {{ configStore.configData?.copyright?.config_value || "" }}
+              </a>
+              <template v-if="configStore.configData?.keep_record?.config_value">
+                <span class="login-page-footer__sep">|</span>
+                <span class="login-page-footer__record">
+                  {{ configStore.configData.keep_record.config_value }}
+                </span>
+              </template>
+            </div>
+          </div>
+        </footer>
+      </div>
+    </div>
+  </div>
+</template>
+
+<script setup lang="ts">
+import type { LocationQuery, RouteLocationRaw } from "vue-router";
+import AuthAPI, {
+  type LoginFormData,
+  type OAuthProvider,
+} from "@/api/module_system/auth";
+import type { TenantRegisterForm } from "@/api/module_system/auth";
+import UserAPI, { type ForgetPasswordForm, type RegisterForm } from "@/api/module_system/user";
+import { useConfigStore, useAppStore, useSettingsStore, useUserStore } from "@stores";
+import { Auth, HttpError, startOAuthLogin } from "@utils";
+import { ElMessage, ElNotification, type FormRules } from "element-plus";
+import FaLoginAccountForm from "@/components/views/fa-login/forms/FaLoginAccountForm.vue";
+import FaLoginForgetPanel from "@/components/views/fa-login/panels/FaLoginForgetPanel.vue";
+import FaLoginMobilePanel from "@/components/views/fa-login/panels/FaLoginMobilePanel.vue";
+import FaLoginQrPanel from "@/components/views/fa-login/panels/FaLoginQrPanel.vue";
+import FaLoginRegisterPanel from "@/components/views/fa-login/panels/FaLoginRegisterPanel.vue";
+import FaAuthTopBar from "@/components/views/fa-login/widgets/FaAuthTopBar.vue";
+
+defineOptions({ name: "Login" });
+
+type AuthPanel = "login" | "register" | "forget";
+
+/** 登录区内：账号密码 ↔ 手机号 ↔ 扫码（扫码 / 手机号为演示交互） */
+type LoginFlowMode = "account" | "mobile" | "qr";
+
+/** 当前登录页只开放账号密码登录与密码重置。 */
+const SHOW_SAAS_AUTH = false;
+
+const configStore = useConfigStore();
+const settingStore = useSettingsStore();
+const appStore = useAppStore();
+const { t, locale } = useI18n();
+
+const authPanel = ref<AuthPanel>("login");
+const loginFlowMode = ref<LoginFlowMode>("account");
+
+const panelTitle = computed(() => {
+  if (authPanel.value === "register") return t("login.reg");
+  if (authPanel.value === "forget") return t("login.resetPassword");
+  if (
+    authPanel.value === "login" &&
+    (loginFlowMode.value === "mobile" || loginFlowMode.value === "qr")
+  ) {
+    return t("login.qrLoginTitle");
+  }
+  return t("login.title");
+});
+
+const userAgreementHref = computed(() => configStore.configData?.clause?.config_value || "#");
+
+function setAuthPanel(panel: AuthPanel) {
+  authPanel.value = panel;
+  if (panel !== "login") {
+    loginFlowMode.value = "account";
+  }
+  nextTick(() => {
+    accountFormRef.value?.clearValidate?.();
+    registerPanelRef.value?.clearValidate?.();
+    forgetPanelRef.value?.clearValidate?.();
+  });
+}
+
+function openMobileLogin() {
+  loginFlowMode.value = "mobile";
+}
+
+function openQrLogin() {
+  loginFlowMode.value = "qr";
+}
+
+function backToAccountLogin() {
+  loginFlowMode.value = "account";
+}
+
+function handleOAuthLogin(provider: OAuthProvider) {
+  startOAuthLogin(provider);
+}
+
+async function tryConsumeOAuthCallback() {
+  const q = route.query;
+  const oauthError = q.oauth_error as string | undefined;
+  const access = q.access_token as string | undefined;
+  const refresh = q.refresh_token as string | undefined;
+
+  if (!oauthError && !(access && refresh)) return;
+
+  const rest: Record<string, unknown> = { ...q };
+  delete rest.oauth_error;
+  delete rest.access_token;
+  delete rest.refresh_token;
+  delete rest.token_type;
+
+  if (oauthError) {
+    ElMessage.error(decodeURIComponent(oauthError));
+    await router.replace({ path: route.path, query: rest as LocationQuery });
+    return;
+  }
+
+  if (access && refresh) {
+    try {
+      Auth.setTokens(access, refresh, true);
+      userStore.setToken(access, refresh);
+      userStore.setLoginStatus(true);
+      ElNotification({
+        title: t("login.oauthNoticeTitle"),
+        message: t("login.oauthLoginSuccess"),
+        type: "success",
+      });
+      await router.replace(resolveRedirectTarget(rest as LocationQuery));
+      if (settingStore.showGuide) {
+        appStore.showGuide(true);
+      }
+    } catch (error) {
+      console.error("[Login] OAuth callback:", error);
+      ElMessage.error(t("login.oauthLoginFailed"));
+      await router.replace({ path: route.path, query: rest as LocationQuery });
+    }
+  }
+}
+
+const formKey = ref(0);
+
+watch(locale, () => {
+  formKey.value++;
+});
+
+const userStore = useUserStore();
+const router = useRouter();
+const route = useRoute();
+
+const accountFormRef = ref<InstanceType<typeof FaLoginAccountForm> | null>(null);
+const registerPanelRef = ref<InstanceType<typeof FaLoginRegisterPanel> | null>(null);
+const forgetPanelRef = ref<InstanceType<typeof FaLoginForgetPanel> | null>(null);
+
+const loading = ref(false);
+const registerLoading = ref(false);
+const forgetLoading = ref(false);
+
+const registerAgreementRead = ref(false);
+
+const registerForm = reactive<RegisterForm & { email: string }>({
+  username: "",
+  password: "",
+  confirmPassword: "",
+  email: "",
+});
+
+const forgetForm = reactive<ForgetPasswordForm>({
+  username: "",
+  new_password: "",
+  confirmPassword: "",
+});
+
+const validateRegisterPassword = (_rule: unknown, value: string, callback: (e?: Error) => void) => {
+  if (!value) {
+    callback(new Error(t("login.message.password.required")));
+    return;
+  }
+  if (registerForm.confirmPassword) {
+    registerPanelRef.value?.validateField?.("confirmPassword");
+  }
+  callback();
+};
+
+const validateRegisterConfirm = (_rule: unknown, value: string, callback: (e?: Error) => void) => {
+  if (!value) {
+    callback(new Error(t("login.message.password.required")));
+    return;
+  }
+  if (value !== registerForm.password) {
+    callback(new Error(t("login.message.password.inconformity")));
+    return;
+  }
+  callback();
+};
+
+const registerRules = computed<FormRules<RegisterForm & { email: string }>>(() => ({
+  username: [{ required: true, message: t("login.message.username.required"), trigger: "blur" }],
+  password: [
+    { required: true, validator: validateRegisterPassword, trigger: "blur" },
+    { min: 6, message: t("login.message.password.min"), trigger: "blur" },
+  ],
+  confirmPassword: [
+    { required: true, message: t("login.message.password.required"), trigger: "blur" },
+    { min: 6, message: t("login.message.password.min"), trigger: "blur" },
+    { validator: validateRegisterConfirm, trigger: "blur" },
+  ],
+  email: [
+    { required: true, message: t("login.email.required"), trigger: "blur" },
+    {
+      type: "email",
+      message: t("login.email.invalid"),
+      trigger: "blur",
+    },
+  ],
+}));
+
+const validateForgetConfirm = (_rule: unknown, value: string, callback: (e?: Error) => void) => {
+  if (!value) {
+    callback(new Error(t("login.message.password.required")));
+    return;
+  }
+  if (value !== forgetForm.new_password) {
+    callback(new Error(t("login.message.password.inconformity")));
+    return;
+  }
+  callback();
+};
+
+const forgetRules = computed<FormRules<ForgetPasswordForm>>(() => ({
+  username: [{ required: true, message: t("login.message.username.required"), trigger: "blur" }],
+  new_password: [
+    { required: true, message: t("login.message.password.required"), trigger: "blur" },
+    { min: 6, message: t("login.message.password.min"), trigger: "blur" },
+  ],
+  confirmPassword: [
+    { required: true, message: t("login.message.password.required"), trigger: "blur" },
+    { min: 6, message: t("login.message.password.min"), trigger: "blur" },
+    { validator: validateForgetConfirm, trigger: "blur" },
+  ],
+}));
+
+const loginForm = reactive<LoginFormData>({
+  username: "",
+  password: "",
+  remember: true,
+  login_type: "PC端",
+});
+
+const rules = computed<FormRules>(() => ({
+  username: [
+    {
+      required: true,
+      trigger: "blur",
+      message: t("login.message.username.required"),
+    },
+  ],
+  password: [
+    {
+      required: true,
+      trigger: "blur",
+      message: t("login.message.password.required"),
+    },
+    {
+      min: 6,
+      message: t("login.message.password.min"),
+      trigger: "blur",
+    },
+  ],
+}));
+
+function resolveRedirectTarget(query: LocationQuery): RouteLocationRaw {
+  const defaultPath = "/";
+  const rawRedirect = (query.redirect as string) || defaultPath;
+  try {
+    const resolved = router.resolve(rawRedirect);
+    return {
+      path: resolved.path,
+      query: resolved.query,
+    };
+  } catch {
+    return { path: defaultPath };
+  }
+}
+
+onMounted(async () => {
+  await configStore.getConfig(true);
+  await tryConsumeOAuthCallback();
+  if (userStore.isLogin) {
+    await router.replace(resolveRedirectTarget(route.query));
+    return;
+  }
+});
+
+const handleSubmit = async () => {
+  if (!accountFormRef.value) return;
+
+  try {
+    const valid = await accountFormRef.value.validate?.();
+    if (!valid) return;
+
+    loading.value = true;
+
+    await userStore.login(loginForm);
+    await router.replace(resolveRedirectTarget(route.query));
+
+    if (settingStore.showGuide) {
+      appStore.showGuide(true);
+    }
+  } catch (error) {
+    if (!(error instanceof HttpError)) {
+      console.error("[Login] Unexpected error:", error);
+      ElNotification({
+        title: "提示",
+        message: error instanceof Error ? error.message : String(error),
+        type: "error",
+      });
+    }
+  } finally {
+    loading.value = false;
+  }
+};
+
+async function submitRegister() {
+  if (!registerAgreementRead.value) {
+    ElMessage.warning(t("login.message.agree.required"));
+    return;
+  }
+  if (!registerPanelRef.value) return;
+  try {
+    await registerPanelRef.value.validate?.();
+    registerLoading.value = true;
+    // 租户自助注册（PRD §4.5）
+    const regData: TenantRegisterForm = {
+      username: registerForm.username,
+      password: registerForm.password,
+      email: registerForm.email || `${registerForm.username}@temp.com`,
+    };
+    await AuthAPI.tenantRegister(regData);
+    loginForm.username = registerForm.username;
+    loginForm.password = registerForm.password;
+    registerForm.username = "";
+    registerForm.password = "";
+    registerForm.confirmPassword = "";
+    registerForm.email = "";
+    registerAgreementRead.value = false;
+    setAuthPanel("login");
+  } catch (error) {
+    console.error("[Login] register:", error);
+  } finally {
+    registerLoading.value = false;
+  }
+}
+
+async function submitForget() {
+  if (!forgetPanelRef.value) return;
+  try {
+    await forgetPanelRef.value.validate?.();
+    forgetLoading.value = true;
+    await UserAPI.forgetPassword(forgetForm);
+    loginForm.username = forgetForm.username;
+    loginForm.password = forgetForm.new_password;
+    forgetForm.username = "";
+    forgetForm.new_password = "";
+    forgetForm.confirmPassword = "";
+    setAuthPanel("login");
+  } catch (error) {
+    console.error("[Login] forget password:", error);
+  } finally {
+    forgetLoading.value = false;
+  }
+}
+</script>
+
+<style scoped lang="scss">
+@use "../../../../components/views/fa-login/fa-login";
+</style>

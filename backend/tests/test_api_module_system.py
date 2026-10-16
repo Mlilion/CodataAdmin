@@ -1,0 +1,604 @@
+"""
+模块接口测试 —— module_system（系统管理）
+认证数据测试：admin 登录后验证 CRUD 真实数据。
+"""
+
+import pytest
+from conftest import assert_route  # noqa: F401
+from fastapi.testclient import TestClient
+
+
+class TestAuth:
+    """认证授权接口（无需认证）。"""
+
+    def test_auth_captcha(self, test_client: TestClient) -> None:
+        assert_route(test_client, "GET", "/system/auth/captcha/get")
+
+    def test_auth_login(self, test_client: TestClient) -> None:
+        assert_route(
+            test_client,
+            "POST",
+            "/system/auth/login",
+            data={"username": "admin", "password": "admin123"},
+            expected_status=200,
+        )
+
+    def test_auth_logout(self, test_client: TestClient, auth_headers: dict) -> None:
+        assert_route(
+            test_client,
+            "POST",
+            "/system/auth/logout",
+            auth=auth_headers,
+            json={"token": "mock_token"},
+        )
+
+    def test_auth_refresh(self, test_client: TestClient) -> None:
+        assert_route(
+            test_client,
+            "POST",
+            "/system/auth/token/refresh",
+            json={"refresh_token": "mock_refresh_token"},
+        )
+
+    def test_auth_tenants(self, test_client: TestClient, auth_headers: dict) -> None:
+        assert_route(test_client, "GET", "/system/auth/tenants", auth=auth_headers)
+
+    def test_auth_select_tenant(self, test_client: TestClient, auth_headers: dict) -> None:
+        assert_route(
+            test_client,
+            "POST",
+            "/system/auth/select-tenant",
+            auth=auth_headers,
+            json={"tenant_id": 1},
+        )
+
+    def test_auth_tenant_register(self, test_client: TestClient) -> None:
+        assert_route(
+            test_client,
+            "POST",
+            "/system/auth/tenant/register",
+            json={"name": "测试租户", "username": "admin", "password": "admin123"},
+        )
+
+    def test_auth_auto_login_users(self, test_client: TestClient, auth_headers: dict) -> None:
+        assert_route(test_client, "GET", "/system/auth/auto-login/users", auth=auth_headers)
+
+    def test_auth_auto_login_token(self, test_client: TestClient, auth_headers: dict) -> None:
+        assert_route(test_client, "POST", "/system/auth/auto-login/token?user_id=1", auth=auth_headers)
+
+
+class TestUser:
+    """用户管理接口 — 数据验证。"""
+
+    def test_user_current_info(self, test_client: TestClient, auth_headers: dict) -> None:
+        resp = test_client.get("/system/user/current/info", headers=auth_headers)
+        assert resp.status_code == 200
+        data = resp.json()
+        assert data["data"]["username"] == "admin", f"期望 admin，实际 {data['data'].get('username')}"
+
+    async def test_user_current_info_includes_menu_ancestors_for_role_children(
+        self,
+        test_client: TestClient,
+    ) -> None:
+        """角色只挂子菜单时，当前用户菜单仍应补齐父级目录，避免前端路径权限误判。"""
+        from uuid import uuid4
+
+        from sqlalchemy import select
+
+        from app.api.v1.module_platform.menu.model import MenuModel
+        from app.api.v1.module_system.role.model import RoleModel
+        from app.api.v1.module_system.user.model import UserModel
+        from app.api.v1.module_system.user.service import UserService
+        from app.core.base_schema import AuthSchema
+        from app.core.database import async_db_session
+
+        suffix = uuid4().hex[:8]
+        assert test_client is not None  # 触发测试应用 lifespan，完成临时库初始化。
+
+        async with async_db_session() as db:
+            child_menu = (
+                await db.execute(
+                    select(MenuModel).where(MenuModel.route_name == "SemanticModel")
+                )
+            ).scalars().one()
+
+            role = RoleModel(
+                tenant_id=1,
+                name=f"语义子菜单测试角色{suffix}",
+                code=f"SEM_CHILD_{suffix}",
+                status=0,
+                order=999,
+                data_scope=4,
+                menus=[child_menu],
+            )
+            user = UserModel(
+                tenant_id=1,
+                username=f"sem_child_{suffix}",
+                password="unused",
+                name="语义子菜单测试用户",
+                is_superuser=False,
+                status=0,
+                roles=[role],
+            )
+            db.add_all([role, user])
+            await db.flush()
+
+            auth = AuthSchema(db=db, user=user, tenant_id=None, check_data_scope=False)
+            info = await UserService(auth).current_info()
+
+            semantic = next(
+                (menu for menu in info.menus or [] if menu.get("route_name") == "Semantic"),
+                None,
+            )
+            assert semantic is not None
+            assert semantic["route_path"] == "/semantic"
+            assert [child["route_name"] for child in semantic.get("children") or []] == [
+                "SemanticModel"
+            ]
+
+    def test_user_list(self, test_client: TestClient, auth_headers: dict) -> None:
+        assert_route(test_client, "GET", "/system/user/list", auth=auth_headers)
+
+    def test_user_detail(self, test_client: TestClient, auth_headers: dict) -> None:
+        resp = test_client.get("/system/user/detail/1", headers=auth_headers)
+        assert resp.status_code == 200
+        data = resp.json()
+        assert data["data"]["username"] == "super", f"id=1 应为 super，实际 {data['data'].get('username')}"
+
+    def test_user_create(self, test_client: TestClient, auth_headers: dict) -> None:
+        assert_route(
+            test_client, "POST", "/system/user/create", auth=auth_headers,
+            json={"username": "test_user", "password": "test123", "name": "测试", "dept_id": 1},
+        )
+
+    def test_user_update(self, test_client: TestClient, auth_headers: dict) -> None:
+        assert_route(
+            test_client, "PUT", "/system/user/update/1", auth=auth_headers,
+            json={"name": "更新用户"},
+        )
+
+    def test_user_delete(self, test_client: TestClient, auth_headers: dict) -> None:
+        assert_route(test_client, "DELETE", "/system/user/delete", auth=auth_headers, json=[9999])
+
+    def test_user_import_template(self, test_client: TestClient, auth_headers: dict) -> None:
+        assert_route(test_client, "GET", "/system/user/import/template", auth=auth_headers)
+
+    def test_user_export(self, test_client: TestClient, auth_headers: dict) -> None:
+        assert_route(test_client, "GET", "/system/user/export", auth=auth_headers)
+
+    def test_user_import_data(self, test_client: TestClient, auth_headers: dict) -> None:
+        assert_route(
+            test_client, "POST", "/system/user/import/data", auth=auth_headers,
+            json={"list": []},
+        )
+
+    def test_user_current_info_update(self, test_client: TestClient, auth_headers: dict) -> None:
+        assert_route(
+            test_client, "PUT", "/system/user/current/info/update", auth=auth_headers,
+            json={"name": "更新个人信息"},
+        )
+
+    def test_user_password_change(self, test_client: TestClient, auth_headers: dict) -> None:
+        assert_route(
+            test_client, "PUT", "/system/user/password/change", auth=auth_headers,
+            json={"old_password": "old", "new_password": "new123"},
+        )
+
+    def test_user_password_forget(self, test_client: TestClient) -> None:
+        assert_route(
+            test_client, "POST", "/system/user/password/forget",
+            json={"username": "admin", "new_password": "newpass123"},
+        )
+
+    def test_user_password_reset(self, test_client: TestClient, auth_headers: dict) -> None:
+        assert_route(
+            test_client, "PUT", "/system/user/password/reset/1", auth=auth_headers,
+            json={"password": "newpass123"},
+        )
+
+    def test_user_register(self, test_client: TestClient) -> None:
+        assert_route(
+            test_client, "POST", "/system/user/register",
+            json={"username": "new_user", "password": "pass123", "name": "新用户"},
+        )
+
+    def test_user_status_batch(self, test_client: TestClient, auth_headers: dict) -> None:
+        assert_route(
+            test_client, "PATCH", "/system/user/status/batch", auth=auth_headers,
+            json={"ids": [1], "status": 1},
+        )
+
+
+class TestRole:
+    """角色管理接口 — 数据验证。"""
+
+    def test_role_list(self, test_client: TestClient, auth_headers: dict) -> None:
+        assert_route(test_client, "GET", "/system/role/list", auth=auth_headers)
+
+    def test_role_detail(self, test_client: TestClient, auth_headers: dict) -> None:
+        assert_route(test_client, "GET", "/system/role/detail/1", auth=auth_headers)
+
+    def test_role_create(self, test_client: TestClient, auth_headers: dict) -> None:
+        assert_route(
+            test_client, "POST", "/system/role/create", auth=auth_headers,
+            json={"name": "测试角色", "code": "test_role", "sort": 1},
+        )
+
+    def test_role_update(self, test_client: TestClient, auth_headers: dict) -> None:
+        assert_route(
+            test_client, "PUT", "/system/role/update/1", auth=auth_headers,
+            json={"name": "更新角色"},
+        )
+
+    def test_role_delete(self, test_client: TestClient, auth_headers: dict) -> None:
+        assert_route(test_client, "DELETE", "/system/role/delete", auth=auth_headers, json=[9999])
+
+    def test_role_export(self, test_client: TestClient, auth_headers: dict) -> None:
+        assert_route(test_client, "GET", "/system/role/export", auth=auth_headers)
+
+    def test_role_permission(self, test_client: TestClient, auth_headers: dict) -> None:
+        assert_route(
+            test_client, "PUT", "/system/role/permission", auth=auth_headers,
+            json={"role_id": 1, "menu_ids": [1, 2]},
+        )
+
+    def test_role_status_batch(self, test_client: TestClient, auth_headers: dict) -> None:
+        assert_route(
+            test_client, "PATCH", "/system/role/status/batch", auth=auth_headers,
+            json={"ids": [1], "status": 1},
+        )
+
+
+class TestDept:
+    """部门管理接口 — 数据验证。"""
+
+    def test_dept_tree(self, test_client: TestClient, auth_headers: dict) -> None:
+        assert_route(test_client, "GET", "/system/dept/tree", auth=auth_headers)
+
+    def test_dept_detail(self, test_client: TestClient, auth_headers: dict) -> None:
+        assert_route(test_client, "GET", "/system/dept/detail/1", auth=auth_headers)
+
+    def test_dept_create(self, test_client: TestClient, auth_headers: dict) -> None:
+        assert_route(
+            test_client, "POST", "/system/dept/create", auth=auth_headers,
+            json={"name": "测试部门", "parent_id": 0, "sort": 1},
+        )
+
+    def test_dept_update(self, test_client: TestClient, auth_headers: dict) -> None:
+        assert_route(
+            test_client, "PUT", "/system/dept/update/1", auth=auth_headers,
+            json={"name": "更新部门"},
+        )
+
+    def test_dept_delete(self, test_client: TestClient, auth_headers: dict) -> None:
+        assert_route(test_client, "DELETE", "/system/dept/delete", auth=auth_headers, json=[9999])
+
+    def test_dept_status_batch(self, test_client: TestClient, auth_headers: dict) -> None:
+        assert_route(
+            test_client, "PATCH", "/system/dept/status/batch", auth=auth_headers,
+            json={"ids": [1], "status": 1},
+        )
+
+
+class TestPosition:
+    """岗位管理接口 — 数据验证。"""
+
+    def test_position_list(self, test_client: TestClient, auth_headers: dict) -> None:
+        assert_route(test_client, "GET", "/system/position/list", auth=auth_headers)
+
+    def test_position_detail(self, test_client: TestClient, auth_headers: dict) -> None:
+        assert_route(test_client, "GET", "/system/position/detail/1", auth=auth_headers)
+
+    def test_position_create(self, test_client: TestClient, auth_headers: dict) -> None:
+        assert_route(
+            test_client, "POST", "/system/position/create", auth=auth_headers,
+            json={"name": "测试岗位", "code": "test_pos", "sort": 1},
+        )
+
+    def test_position_update(self, test_client: TestClient, auth_headers: dict) -> None:
+        assert_route(
+            test_client, "PUT", "/system/position/update/1", auth=auth_headers,
+            json={"name": "更新岗位"},
+        )
+
+    def test_position_delete(self, test_client: TestClient, auth_headers: dict) -> None:
+        assert_route(test_client, "DELETE", "/system/position/delete", auth=auth_headers, json=[9999])
+
+    def test_position_export(self, test_client: TestClient, auth_headers: dict) -> None:
+        assert_route(test_client, "GET", "/system/position/export", auth=auth_headers)
+
+    def test_position_status_batch(self, test_client: TestClient, auth_headers: dict) -> None:
+        assert_route(
+            test_client, "PATCH", "/system/position/status/batch", auth=auth_headers,
+            json={"ids": [1], "status": 1},
+        )
+
+
+class TestDict:
+    """字典管理接口 — 数据验证。"""
+
+    def test_dict_type_list(self, test_client: TestClient, auth_headers: dict) -> None:
+        assert_route(test_client, "GET", "/system/dict/type/list", auth=auth_headers)
+
+    def test_dict_type_detail(self, test_client: TestClient, auth_headers: dict) -> None:
+        assert_route(test_client, "GET", "/system/dict/type/detail/1", auth=auth_headers)
+
+    def test_dict_type_create(self, test_client: TestClient, auth_headers: dict) -> None:
+        assert_route(
+            test_client, "POST", "/system/dict/type/create", auth=auth_headers,
+            json={"dict_name": "测试字典", "dict_type": "test_dict", "status": 0},
+        )
+
+    def test_dict_type_update(self, test_client: TestClient, auth_headers: dict) -> None:
+        assert_route(
+            test_client, "PUT", "/system/dict/type/update/1", auth=auth_headers,
+            json={"dict_name": "更新字典"},
+        )
+
+    def test_dict_type_delete(self, test_client: TestClient, auth_headers: dict) -> None:
+        assert_route(test_client, "DELETE", "/system/dict/type/delete", auth=auth_headers, json=[9999])
+
+    def test_dict_data_by_type(self, test_client: TestClient, auth_headers: dict) -> None:
+        assert_route(test_client, "GET", "/system/dict/data/info/sys_normal_disable", auth=auth_headers)
+
+    def test_dict_data_list(self, test_client: TestClient, auth_headers: dict) -> None:
+        assert_route(test_client, "GET", "/system/dict/data/list", auth=auth_headers)
+
+    def test_dict_data_create(self, test_client: TestClient, auth_headers: dict) -> None:
+        assert_route(
+            test_client, "POST", "/system/dict/data/create", auth=auth_headers,
+            json={"dict_type": "sys_normal_disable", "dict_label": "测试", "dict_value": "0", "sort": 1},
+        )
+
+    def test_dict_data_update(self, test_client: TestClient, auth_headers: dict) -> None:
+        assert_route(
+            test_client, "PUT", "/system/dict/data/update/1", auth=auth_headers,
+            json={"dict_label": "更新标签"},
+        )
+
+    def test_dict_data_delete(self, test_client: TestClient, auth_headers: dict) -> None:
+        assert_route(test_client, "DELETE", "/system/dict/data/delete", auth=auth_headers, json=[9999])
+
+    def test_dict_data_export(self, test_client: TestClient, auth_headers: dict) -> None:
+        assert_route(test_client, "POST", "/system/dict/data/export", auth=auth_headers)
+
+    def test_dict_data_status_batch(self, test_client: TestClient, auth_headers: dict) -> None:
+        assert_route(
+            test_client, "PATCH", "/system/dict/data/status/batch", auth=auth_headers,
+            json={"ids": [1], "status": 1},
+        )
+
+    def test_dict_type_export(self, test_client: TestClient, auth_headers: dict) -> None:
+        assert_route(test_client, "POST", "/system/dict/type/export", auth=auth_headers)
+
+    def test_dict_type_optionselect(self, test_client: TestClient, auth_headers: dict) -> None:
+        assert_route(test_client, "GET", "/system/dict/type/optionselect", auth=auth_headers)
+
+    def test_dict_type_status_batch(self, test_client: TestClient, auth_headers: dict) -> None:
+        assert_route(
+            test_client, "PATCH", "/system/dict/type/status/batch", auth=auth_headers,
+            json={"ids": [1], "status": 1},
+        )
+
+
+class TestNotice:
+    """公告通知接口 — 数据验证。"""
+
+    def test_notice_list(self, test_client: TestClient, auth_headers: dict) -> None:
+        assert_route(test_client, "GET", "/system/notice/list", auth=auth_headers)
+
+    def test_notice_detail(self, test_client: TestClient, auth_headers: dict) -> None:
+        assert_route(test_client, "GET", "/system/notice/detail/1", auth=auth_headers)
+
+    def test_notice_create(self, test_client: TestClient, auth_headers: dict) -> None:
+        assert_route(
+            test_client, "POST", "/system/notice/create", auth=auth_headers,
+            json={"notice_title": "测试公告", "notice_content": "内容", "status": 0},
+        )
+
+    def test_notice_update(self, test_client: TestClient, auth_headers: dict) -> None:
+        assert_route(
+            test_client, "PUT", "/system/notice/update/1", auth=auth_headers,
+            json={"notice_title": "更新公告"},
+        )
+
+    def test_notice_delete(self, test_client: TestClient, auth_headers: dict) -> None:
+        assert_route(test_client, "DELETE", "/system/notice/delete", auth=auth_headers, json=[9999])
+
+    def test_notice_unread_count(self, test_client: TestClient, auth_headers: dict) -> None:
+        assert_route(test_client, "GET", "/system/notice/unread-count", auth=auth_headers)
+
+    def test_notice_available(self, test_client: TestClient, auth_headers: dict) -> None:
+        assert_route(test_client, "GET", "/system/notice/available", auth=auth_headers)
+
+    def test_notice_export(self, test_client: TestClient, auth_headers: dict) -> None:
+        assert_route(test_client, "POST", "/system/notice/export", auth=auth_headers)
+
+    def test_notice_panel(self, test_client: TestClient, auth_headers: dict) -> None:
+        assert_route(test_client, "GET", "/system/notice/panel", auth=auth_headers)
+
+    def test_notice_read(self, test_client: TestClient, auth_headers: dict) -> None:
+        assert_route(test_client, "POST", "/system/notice/read/1", auth=auth_headers)
+
+    def test_notice_read_all(self, test_client: TestClient, auth_headers: dict) -> None:
+        assert_route(test_client, "POST", "/system/notice/read-all", auth=auth_headers)
+
+    def test_notice_status_batch(self, test_client: TestClient, auth_headers: dict) -> None:
+        assert_route(
+            test_client, "PATCH", "/system/notice/status/batch", auth=auth_headers,
+            json={"ids": [1], "status": 1},
+        )
+
+
+class TestParams:
+    """参数管理接口 — 数据验证。"""
+
+    def test_params_list(self, test_client: TestClient, auth_headers: dict) -> None:
+        assert_route(test_client, "GET", "/system/param/list", auth=auth_headers)
+
+    def test_params_create(self, test_client: TestClient, auth_headers: dict) -> None:
+        assert_route(
+            test_client, "POST", "/system/param/create", auth=auth_headers,
+            json={"param_name": "测试参数", "param_key": "test.key", "param_value": "val", "param_type": "string"},
+        )
+
+    def test_params_update(self, test_client: TestClient, auth_headers: dict) -> None:
+        assert_route(
+            test_client, "PUT", "/system/param/update/1", auth=auth_headers,
+            json={"param_value": "new_val"},
+        )
+
+    def test_params_delete(self, test_client: TestClient, auth_headers: dict) -> None:
+        assert_route(test_client, "DELETE", "/system/param/delete", auth=auth_headers, json=[9999])
+
+    def test_params_detail(self, test_client: TestClient, auth_headers: dict) -> None:
+        assert_route(test_client, "GET", "/system/param/detail/1", auth=auth_headers)
+
+    def test_params_export(self, test_client: TestClient, auth_headers: dict) -> None:
+        assert_route(test_client, "GET", "/system/param/export", auth=auth_headers)
+
+    def test_params_info(self, test_client: TestClient, auth_headers: dict) -> None:
+        assert_route(test_client, "GET", "/system/param/info", auth=auth_headers)
+
+    def test_params_by_key(self, test_client: TestClient, auth_headers: dict) -> None:
+        assert_route(test_client, "GET", "/system/param/key/test.key", auth=auth_headers)
+
+    def test_params_value_by_key(self, test_client: TestClient, auth_headers: dict) -> None:
+        assert_route(test_client, "GET", "/system/param/value/test.key", auth=auth_headers)
+
+    def test_params_status_batch(self, test_client: TestClient, auth_headers: dict) -> None:
+        assert_route(
+            test_client, "PATCH", "/system/param/status/batch", auth=auth_headers,
+            json={"ids": [1], "status": 1},
+        )
+
+
+class TestLog:
+    """日志管理接口 — 数据验证。"""
+
+    def test_login_log_list(self, test_client: TestClient, auth_headers: dict) -> None:
+        assert_route(test_client, "GET", "/system/log/login/list", auth=auth_headers)
+
+    def test_login_log_detail(self, test_client: TestClient, auth_headers: dict) -> None:
+        assert_route(test_client, "GET", "/system/log/login/detail/1", auth=auth_headers)
+
+    def test_operation_log_list(self, test_client: TestClient, auth_headers: dict) -> None:
+        assert_route(test_client, "GET", "/system/log/operation/list", auth=auth_headers)
+
+    def test_operation_log_detail(self, test_client: TestClient, auth_headers: dict) -> None:
+        assert_route(test_client, "GET", "/system/log/operation/detail/1", auth=auth_headers)
+
+
+def test_ticket_list_permission_matches_seeded_menu() -> None:
+    """工单列表接口应使用菜单种子里可授权的查询权限。"""
+    from app.api.v1.module_system.ticket.controller import TicketRouter
+    from app.core.dependencies import AuthPermission
+
+    route = next(route for route in TicketRouter.routes if getattr(route, "path", "") == "/ticket/list")
+    permission_deps = [
+        dep.call.permissions
+        for dep in route.dependant.dependencies
+        if isinstance(dep.call, AuthPermission)
+    ]
+
+    assert permission_deps == [["module_system:ticket:query"]]
+
+
+@pytest.mark.skip(reason="单租户化已禁用商业化路由,见 Task 1")
+class TestTicket:
+    """工单管理接口 — 数据验证。"""
+
+    def test_ticket_list(self, test_client: TestClient, auth_headers: dict) -> None:
+        assert_route(test_client, "GET", "/system/ticket/list", auth=auth_headers)
+
+    def test_ticket_detail(self, test_client: TestClient, auth_headers: dict) -> None:
+        assert_route(test_client, "GET", "/system/ticket/detail/1", auth=auth_headers)
+
+    def test_ticket_create(self, test_client: TestClient, auth_headers: dict) -> None:
+        assert_route(
+            test_client, "POST", "/system/ticket/create", auth=auth_headers,
+            json={"title": "测试工单", "ticket_type": "bug", "ticket_content": "内容描述"},
+        )
+
+    def test_ticket_update(self, test_client: TestClient, auth_headers: dict) -> None:
+        assert_route(
+            test_client, "PUT", "/system/ticket/update/1", auth=auth_headers,
+            json={"title": "更新工单"},
+        )
+
+    def test_ticket_delete(self, test_client: TestClient, auth_headers: dict) -> None:
+        assert_route(test_client, "DELETE", "/system/ticket/delete", auth=auth_headers, json=[9999])
+
+    def test_ticket_batch(self, test_client: TestClient, auth_headers: dict) -> None:
+        assert_route(test_client, "PUT", "/system/ticket/batch", auth=auth_headers)
+
+
+class TestSingleTenantAuth:
+    """单租户化：鉴权上下文不携带 tenant_id，套餐权限校验自动短路。"""
+
+    async def test_authenticate_does_not_inject_tenant_id(self) -> None:
+        """即使会话信息里带 tenant_id，_authenticate 也不应将其注入 AuthSchema。
+
+        这是让 permission.py 两处套餐守卫短路的唯一必需保证。
+        """
+        from unittest.mock import AsyncMock, patch
+
+        from app.core import dependencies
+
+        # 构造一份带非空 tenant_id 的会话信息（模拟历史 token / 多租户遗留数据）
+        session_info = {
+            "session_id": "test-session-id",
+            "user_name": "admin",
+            "tenant_id": 42,  # 故意非空，验证不会被注入
+        }
+
+        class _FakeUser:
+            id = 1
+            username = "admin"
+
+        with (
+            patch.object(dependencies, "_decode_token_info", new=AsyncMock(return_value=(session_info, ""))),
+            patch.object(dependencies, "_check_token_online", new=AsyncMock(return_value=None)),
+            patch.object(dependencies, "_try_sliding_refresh", new=AsyncMock(return_value=None)),
+            patch.object(dependencies, "_load_user_from_db", new=AsyncMock(return_value=_FakeUser())),
+            patch.object(dependencies, "async_db_session") as _mock_session_cm,
+        ):
+            # async_db_session() 用作 async context manager
+            _mock_session_cm.return_value.__aenter__ = AsyncMock(return_value=AsyncMock())
+            _mock_session_cm.return_value.__aexit__ = AsyncMock(return_value=False)
+
+            auth = await dependencies._authenticate(
+                token="Bearer faketoken",
+                db=None,
+                redis=AsyncMock(),
+                request=None,
+            )
+
+        assert auth.tenant_id is None, "单租户化后鉴权上下文不应携带 tenant_id"
+
+    async def test_menu_filter_skips_package_when_no_tenant(self) -> None:
+        """tenant_id 为空时,菜单过滤只按 RBAC 角色,不调用 PackageService。"""
+        from unittest.mock import AsyncMock, MagicMock, patch
+
+        from app.core.base_schema import AuthSchema
+        from app.core.permission import Permission
+
+        # 构造一个带角色-菜单的用户（角色 status=0 可用，菜单 status=0 可用）
+        menu = MagicMock(id=100, status=0)
+        role = MagicMock(status=0, menus=[menu])
+        user = MagicMock(roles=[role], is_superuser=False)
+
+        auth = AuthSchema(db=None, tenant_id=None, check_data_scope=False)
+        auth.user = user
+
+        model = MagicMock()
+        model.id = MagicMock()
+        perm = Permission(model=model, auth=auth)
+
+        with patch(
+            "app.api.v1.module_platform.package.service.PackageService.get_tenant_available_menu_ids",
+            new=AsyncMock(),
+        ) as mock_pkg:
+            await perm._Permission__filter_by_menu_auth()
+
+        mock_pkg.assert_not_called()

@@ -1,0 +1,91 @@
+[
+  {
+    "name": "示例组织",
+    "code": "GROUP",
+    "order": 1,
+    "status": 0,
+    "leader": null,
+    "phone": null,
+    "email": null,
+    "description": "示例组织总部",
+    "parent_id": null,
+    "tenant_id": 1,
+    "children": [
+      {
+        "name": "技术部",
+        "code": "TECH",
+        "order": 1,
+        "status": 0,
+        "leader": null,
+        "phone": null,
+        "email": null,
+        "description": "负责技术研发",
+        "parent_id": null,
+        "tenant_id": 1,
+        "children": [
+          {
+            "name": "后端开发组",
+            "code": "BACKEND",
+            "order": 1,
+            "status": 0,
+            "leader": null,
+            "phone": null,
+            "email": null,
+            "description": "后端技术开发",
+            "parent_id": null,
+            "tenant_id": 1,
+            "children": []
+          },
+          {
+            "name": "前端开发组",
+            "code": "FRONTEND",
+            "order": 2,
+            "status": 0,
+            "leader": null,
+            "phone": null,
+            "email": null,
+            "description": "前端技术开发",
+            "parent_id": null,
+            "tenant_id": 1,
+            "children": []
+          }
+        ]
+      },
+      {
+        "name": "产品运营部",
+        "code": "PRODUCT",
+        "order": 2,
+        "status": 0,
+        "leader": null,
+        "phone": null,
+        "email": null,
+        "description": "产品与运营",
+        "parent_id": null,
+        "tenant_id": 1,
+        "children": []
+      },
+      {
+        "name": "人力资源部",
+        "code": "HR",
+        "order": 3,
+        "status": 0,
+        "leader": null,
+        "phone": null,
+        "email": null,
+        "description": "人事管理",
+        "parent_id": null,
+        "tenant_id": 1,
+        "children": []
+      }
+    ]
+  },
+  {
+    "name": "示例租户技术部",
+    "code": "TEST_TECH",
+    "order": 1,
+    "tenant_id": 2,
+    "parent_id": null,
+    "status": 0,
+    "description": "测试租户技术部门"
+  }
+]

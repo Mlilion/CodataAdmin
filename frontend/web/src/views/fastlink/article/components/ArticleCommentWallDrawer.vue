@@ -1,0 +1,143 @@
+<!-- 留言墙（大抽屉，替代独立路由） -->
+<template>
+  <FaDrawer
+    v-model="visible"
+    title="留言墙"
+    direction="rtl"
+    size="min(960px, 96vw)"
+    class="article-comment-wall-drawer"
+  >
+    <p class="mt-0 mb-8 text-g-600">每一份留言都记录了您的想法，也为我们提供了珍贵的回忆</p>
+
+    <ul
+      class="grid grid-cols-5 gap-5 max-2xl:grid-cols-4 max-xl:grid-cols-3 max-lg:grid-cols-2 max-sm:grid-cols-1 mb-5 list-none p-0 m-0"
+    >
+      <li
+        class="relative p-4 cursor-pointer aspect-16/12 duration-300 hover:-translate-y-1.5 rounded-custom-sm"
+        :style="{ background: item.color }"
+        v-for="item in commentsWithColors"
+        :key="item.id"
+        @click="openCardDrawer(item)"
+      >
+        <p class="text-g-600 text-sm">{{ item.date }}</p>
+        <p class="mt-4 text-sm text-gray-800">{{ item.content }}</p>
+        <div class="absolute bottom-4 left-0 px-4 flex items-center justify-between w-full">
+          <div class="flex items-center">
+            <div class="flex items-center mr-5 text-xs text-g-600">
+              <FaSvgIcon icon="ri:heart-line" class="mr-1 text-base" />
+              <span>{{ item.collection }}</span>
+            </div>
+            <div class="flex items-center mr-5 text-xs text-g-600">
+              <FaSvgIcon icon="ri:message-3-line" class="mr-1 text-base" />
+              <span>{{ item.comment }}</span>
+            </div>
+          </div>
+          <div>
+            <span class="text-sm text-gray-700">{{ item.userName }}</span>
+          </div>
+        </div>
+      </li>
+    </ul>
+
+    <FaDrawer
+      v-model="cardDrawerOpen"
+      title="详情"
+      :lock-scroll="false"
+      :size="360"
+      modal-class="comment-modal"
+    >
+      <div class="drawer-default">
+        <div class="relative p-4 aspect-16/12 rounded-md" :style="{ background: clickItem.color }">
+          <p class="text-g-500 text-sm">{{ clickItem.date }}</p>
+          <p class="mt-4 text-sm text-gray-800">{{ clickItem.content }}</p>
+          <div class="absolute bottom-4 left-0 px-4 flex items-center justify-between w-full">
+            <div class="flex items-center">
+              <div class="flex items-center mr-5 text-xs text-g-600">
+                <FaSvgIcon icon="ri:heart-line" class="mr-1 text-base" />
+                <span>{{ clickItem.collection }}</span>
+              </div>
+              <div class="flex items-center mr-5 text-xs text-g-600">
+                <FaSvgIcon icon="ri:message-3-line" class="mr-1 text-base" />
+                <span>{{ clickItem.comment }}</span>
+              </div>
+            </div>
+            <span class="text-sm text-gray-700">{{ clickItem.userName }}</span>
+          </div>
+        </div>
+
+        <!-- 评论组件 -->
+        <div class="mt-6 px-2">
+          <FaCommentWidget />
+        </div>
+      </div>
+    </FaDrawer>
+  </FaDrawer>
+</template>
+
+<script setup lang="ts">
+import { commentList } from "@/mock/temp/commentList";
+
+defineOptions({ name: "ArticleCommentWallDrawer" });
+
+interface CommentItem {
+  id: number;
+  date: string;
+  content: string;
+  collection: number;
+  comment: number;
+  userName: string;
+  color?: string;
+}
+
+const props = defineProps<{
+  modelValue: boolean;
+}>();
+
+interface Emits {
+  "update:modelValue": [boolean];
+}
+
+const emit = defineEmits<Emits>();
+
+const visible = computed({
+  get: () => props.modelValue,
+  set: (v: boolean) => emit("update:modelValue", v),
+});
+
+const COLOR_LIST = ["#D8F8FF", "#FDDFD9", "#FCE6F0", "#D3F8F0", "#FFEABC", "#F5E1FF", "#E1E6FE"];
+
+const cardDrawerOpen = ref(false);
+const clickItem = ref<CommentItem>({
+  id: 1,
+  date: "2024-9-3",
+  content: "加油！学好Node 自己写个小Demo",
+  collection: 5,
+  comment: 8,
+  userName: "匿名",
+  color: COLOR_LIST[0],
+});
+
+const commentsWithColors = computed(() => {
+  let lastColorIndex = -1;
+
+  return commentList.map((item) => {
+    let newIndex: number;
+
+    do {
+      newIndex = Math.floor(Math.random() * COLOR_LIST.length);
+    } while (newIndex === lastColorIndex && COLOR_LIST.length > 1);
+
+    lastColorIndex = newIndex;
+
+    return {
+      ...item,
+      color: COLOR_LIST[newIndex],
+    };
+  });
+});
+
+const openCardDrawer = (item: CommentItem) => {
+  cardDrawerOpen.value = true;
+  clickItem.value = item;
+};
+</script>

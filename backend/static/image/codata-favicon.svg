@@ -1,0 +1,5 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 48 48" role="img" aria-labelledby="title">
+  <title id="title">CodataAdmin</title>
+  <rect x="2" y="2" width="44" height="44" rx="12" fill="#315efb"/>
+  <path d="M32 15a14 14 0 1 0 0 18M33 20a9 9 0 1 0 0 8" fill="none" stroke="#fff" stroke-linecap="round" stroke-width="4"/>
+</svg>

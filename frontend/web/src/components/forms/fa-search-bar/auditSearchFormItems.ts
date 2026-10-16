@@ -1,0 +1,135 @@
+import type { SearchFormItem } from "./index.vue";
+
+/** 与创建/更新人、时间范围配套的后端查询字段（可与其他业务条件组合） */
+export type AuditSearchFormParams = {
+  created_id?: number | null;
+  updated_id?: number | null;
+  created_time?: string[];
+  updated_time?: string[];
+  tenant_id?: number | null;
+};
+
+export interface GetAuditSearchFormItemsOptions {
+  /** 栅格列宽，与 FaSearchBar `span` 一致时建议传相同值，默认 6 */
+  span?: number;
+  createdByLabel?: string;
+  updatedByLabel?: string;
+  createdTimeLabel?: string;
+  updatedTimeLabel?: string;
+  tenantIdLabel?: string;
+  createdByPlaceholder?: string;
+  updatedByPlaceholder?: string;
+  tenantIdPlaceholder?: string;
+  /** 日期时间范围 valueFormat，默认 YYYY-MM-DD HH:mm:ss */
+  valueFormat?: string;
+  rangeSeparator?: string;
+  startPlaceholder?: string;
+  endPlaceholder?: string;
+  /** 是否显示租户ID字段，默认 false */
+  showTenantId?: boolean;
+  /** 是否显示创建人字段，默认 true */
+  showCreatedBy?: boolean;
+  /** 是否显示更新人字段，默认 true */
+  showUpdatedBy?: boolean;
+  /** 是否显示创建时间字段，默认 true */
+  showCreatedTime?: boolean;
+  /** 是否显示更新时间字段，默认 true */
+  showUpdatedTime?: boolean;
+}
+
+/**
+ * 常见「创建人 / 更新人 / 创建时间 / 更新时间 / 租户ID」搜索项，供 FaSearchBar `items` 使用。
+ * 当 FaSearchBar 设置 `includeAudit` 为 true 时，会自动追加这些字段。
+ * 创建人、更新人插槽由 FaSearchBar 内置提供，也可通过 `#created_id`、`#updated_id` 覆盖。
+ */
+export function getAuditSearchFormItems(
+  options?: GetAuditSearchFormItemsOptions
+): SearchFormItem[] {
+  const span = options?.span ?? 6;
+  const valueFormat = options?.valueFormat ?? "YYYY-MM-DD HH:mm:ss";
+  const rangeSep = options?.rangeSeparator ?? "至";
+  const sp = options?.startPlaceholder ?? "开始";
+  const ep = options?.endPlaceholder ?? "结束";
+  const showTenantId = options?.showTenantId ?? false;
+  const showCreatedBy = options?.showCreatedBy ?? true;
+  const showUpdatedBy = options?.showUpdatedBy ?? true;
+  const showCreatedTime = options?.showCreatedTime ?? true;
+  const showUpdatedTime = options?.showUpdatedTime ?? true;
+
+  const fieldMap: Record<string, SearchFormItem> = {
+    created_id: {
+      label: options?.createdByLabel ?? "创建人",
+      key: "created_id",
+      type: "input",
+      props: {
+        placeholder: options?.createdByPlaceholder ?? "请选择创建人",
+        style: { width: "100%" },
+      },
+      span,
+      expandOnly: true, // 标记为展开专属字段
+    },
+    updated_id: {
+      label: options?.updatedByLabel ?? "更新人",
+      key: "updated_id",
+      type: "input",
+      props: {
+        placeholder: options?.updatedByPlaceholder ?? "请选择更新人",
+        style: { width: "100%" },
+      },
+      span,
+      expandOnly: true, // 标记为展开专属字段
+    },
+    created_time: {
+      label: options?.createdTimeLabel ?? "创建时间",
+      key: "created_time",
+      type: "datetimerange",
+      props: {
+        style: { width: "100%" },
+        type: "datetimerange",
+        rangeSeparator: rangeSep,
+        startPlaceholder: sp,
+        endPlaceholder: ep,
+        valueFormat,
+      },
+      span,
+      expandOnly: true, // 标记为展开专属字段
+    },
+    updated_time: {
+      label: options?.updatedTimeLabel ?? "更新时间",
+      key: "updated_time",
+      type: "datetimerange",
+      props: {
+        style: { width: "100%" },
+        type: "datetimerange",
+        rangeSeparator: rangeSep,
+        startPlaceholder: sp,
+        endPlaceholder: ep,
+        valueFormat,
+      },
+      span,
+      expandOnly: true, // 标记为展开专属字段
+    },
+    tenant_id: {
+      label: options?.tenantIdLabel ?? "租户ID",
+      key: "tenant_id",
+      type: "input",
+      props: {
+        placeholder: options?.tenantIdPlaceholder ?? "请输入租户ID",
+        style: { width: "100%" },
+      },
+      span,
+      expandOnly: true, // 标记为展开专属字段
+    },
+  };
+
+  const fieldOrder: string[] = [];
+  if (showCreatedBy) fieldOrder.push("created_id");
+  if (showUpdatedBy) fieldOrder.push("updated_id");
+  if (showCreatedTime) fieldOrder.push("created_time");
+  if (showUpdatedTime) fieldOrder.push("updated_time");
+  if (showTenantId) fieldOrder.push("tenant_id");
+
+  return fieldOrder
+    .map((key) => fieldMap[key])
+    .filter((item): item is SearchFormItem => Boolean(item));
+}
