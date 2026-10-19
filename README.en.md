@@ -4,6 +4,8 @@
 
 English | [简体中文](./README.md)
 
+> **Companion project**: This repository is the semantic-model companion to the [Codata](https://github.com/Mlilion/Codata) project, focused on semantic modeling, release snapshots, and trusted querying over MCP. See [Mlilion/Codata](https://github.com/Mlilion/Codata) for the platform and agent capabilities.
+
 ## Positioning
 
 CodataAdmin is not an admin template. Its core is the **semantic model**. It answers three questions:
@@ -298,6 +300,7 @@ For Docker deployment, Nginx, and production settings, see [docker/README.md](do
 ├── frontend/app/                     # reserved mobile directory
 ├── frontend/docs/                    # reserved docs directory
 ├── docker/                           # Compose, MySQL/Redis/PostgreSQL, Nginx
+├── docs/images/                      # README images (community and author QR codes)
 └── deploy.sh                         # one-command deployment
 ```
 
@@ -336,3 +339,17 @@ This project is licensed under GNU GPL v3.0 (GPL-3.0-only). See [LICENSE](./LICE
 - The main database is initialized from ORM models and JSON seed files; the retrieval store is a rebuildable derived index, not a source of truth.
 - Semantic models must be released before MCP tools can list or consume them.
 - Release gates and readiness checks are two separate defenses: the first blocks what cannot enter a snapshot, the second answers whether the platform is usable right now.
+
+## Contact
+
+Join the community to discuss semantic modeling, ask questions, or report issues.
+
+- **Codata Agent group**: Scan to join. The QR code is valid for 7 days; if it has expired, add the author on WeChat and they will invite you to the group.
+- **Author on WeChat**: Scan to add, mention "Codata", and the author will invite you to the group.
+
+<table>
+  <tr>
+    <td align="center" width="50%"><img src="docs/images/wechat-group.jpg" width="260" alt="Codata Agent group QR code"><br/><sub>Codata Agent group</sub></td>
+    <td align="center" width="50%"><img src="docs/images/wechat-author.jpg" width="260" alt="Author WeChat QR code"><br/><sub>Author WeChat (moilion)</sub></td>
+  </tr>
+</table>

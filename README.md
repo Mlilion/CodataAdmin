@@ -4,6 +4,8 @@
 
 简体中文 | [English](./README.en.md)
 
+> **配套项目**：本仓库是 [Codata](https://github.com/Mlilion/Codata) 项目的配套语义模型项目，专注语义建模、发布快照与 MCP 可信取数；平台与 Agent 能力请见 [Mlilion/Codata](https://github.com/Mlilion/Codata)。
+
 ## 项目定位
 
 CodataAdmin 的核心不是后台管理，而是**语义模型**。它要回答三个问题：
@@ -298,6 +300,7 @@ Docker 部署、Nginx 与生产配置见 [docker/README.md](docker/README.md) �
 ├── frontend/app/                     # 预留移动端目录
 ├── frontend/docs/                    # 预留文档目录
 ├── docker/                           # Compose、MySQL/Redis/PostgreSQL、Nginx
+├── docs/images/                      # README 配图（交流群与作者二维码）
 └── deploy.sh                         # 一键部署脚本
 ```
 
@@ -336,3 +339,17 @@ backend/app/api/v1/module_semantic/
 - 主库以 ORM 与 JSON 种子为初始化来源；语义检索副库是可重建的派生索引，不是事实源。
 - 语义模型必须发布后才会被 MCP 工具列出和消费。
 - 发布门禁与就绪自检是两道独立防线：前者拦截「不能进入快照」，后者回答「这套东西现在能不能用」。
+
+## 联系方式
+
+欢迎进群讨论、反馈问题或交流语义建模实践。
+
+- **Codata Agent 交流群**：扫码加入。群二维码 7 天内有效；若已过期，请加作者微信，由作者拉你进群。
+- **作者微信**：扫码添加好友，备注「Codata」，作者会拉你进交流群。
+
+<table>
+  <tr>
+    <td align="center" width="50%"><img src="docs/images/wechat-group.jpg" width="260" alt="Codata Agent 交流群二维码"><br/><sub>Codata Agent 交流群</sub></td>
+    <td align="center" width="50%"><img src="docs/images/wechat-author.jpg" width="260" alt="作者微信二维码"><br/><sub>作者微信（moilion）</sub></td>
+  </tr>
+</table>
