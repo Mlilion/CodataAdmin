@@ -742,8 +742,8 @@ def test_empty_joins_is_refused():
 def test_ambiguous_multiple_edges_is_refused():
     """同对实体多条边 → 拒绝并列候选。
 
-    ★ 我们没有 confidence 字段, 不能像 DataSage 那样静默取最高分那条 ——
-    静默选边正是它的缺陷。
+    ★ 我们没有 confidence 字段, 不能像某些实现那样静默取最高分那条 ——
+    静默选边正是那种做法的问题。
     """
     joins = _JOINS + [
         {"from_entity": "order_revenue", "to_entity": "dim_user",

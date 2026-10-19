@@ -15,7 +15,7 @@
 1. **不得比 `query_indicator` 更宽松**：复用 `executor` 那条既有守卫链
    （白名单 → 写关键字 → 多语句 → 自动 LIMIT → EXPLAIN 预检），一个都不许绕。
    这是本文件最重要的一组断言 —— 新开一条执行路最容易犯的错就是"顺手直连"。
-2. **返回形状与 DataSage 的 `execute_sql` 对齐**：`data` / `columns` / `row_count` /
+2. **返回形状与既有 `execute_sql` 对齐**：`data` / `columns` / `row_count` /
    `truncated`。agent 侧（含既有 prompt 与用户习惯）已经按这个形状读结果。
 3. **`columns` 在零行时也必须有**：这是形状适配的真正难点 —— 我们的
    `SqlConnection.query` 返回 `list[dict]`，零行时字典列表是空的、列名**全部丢失**。
@@ -134,14 +134,14 @@ async def test_guard_error_is_not_raised_out():
 # ---------------------------------------------------------------- 返回形状
 
 
-async def test_return_shape_matches_datasage():
-    """data / columns / row_count / truncated / mode / duration_ms —— 与 DataSage 同形。
+async def test_return_shape_matches_datacatalog():
+    """data / columns / row_count / truncated / mode / duration_ms —— 与既有实现同形。
 
     ★★ `data` 的每一行是**数组**，不是字典 —— 这是消费方唯一真正依赖的东西。
     Codata 的渲染器按**下标**取值（`data-table.tsx:157` 的 `toStr(row[ci])`、
     `chart-renderer.tsx:53` 的 `row[i]`），其类型声明写死了
     `rows: (string | number | null)[][]`（`artifact.ts:35`），
-    而它的 parser 按**工具名**匹配（`datasage_parser.py:55`）—— 我们的工具也叫
+    而它的 parser 按**工具名**匹配（`parser.py:55`）—— 我们的工具也叫
     `execute_sql`，所以同一个 parser 同时处理两个服务端，没有分支可加。
 
     给字典行的后果不是报错，而是：**表头正常、行数正常、每个单元格空白**
@@ -160,7 +160,7 @@ async def test_return_shape_matches_datasage():
     assert result["columns"] == ["a", "b"]
     assert result["row_count"] == 2
     assert result["truncated"] is False
-    # DataSage 的 sync 返回带它，Codata 的 _sql_result_from_payload 会读它填进 artifact
+    # 既有的 sync 返回带它，Codata 的 _sql_result_from_payload 会读它填进 artifact
     assert isinstance(result["duration_ms"], int)
 
 

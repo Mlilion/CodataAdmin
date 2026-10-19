@@ -1,7 +1,7 @@
 """中文分词（替代 zhparser）。
 
-为什么不用 zhparser：它需要在 PG 容器内编译安装扩展，无官方预装镜像。核实 DataSage
-的实现后确认 zhparser 的角色**仅是把中文切成空格分隔的 token 串**，随后用
+为什么不用 zhparser：它需要在 PG 容器内编译安装扩展，无官方预装镜像。核实既有
+实现后确认 zhparser 的角色**仅是把中文切成空格分隔的 token 串**，随后用
 `to_tsvector('simple', tokens)` 建索引 —— `simple` 配置只按空格切分，不做语言处理。
 故分词器完全可替换：Python 侧用 jieba，PG 侧仍 `to_tsvector('simple', tokens)`。
 

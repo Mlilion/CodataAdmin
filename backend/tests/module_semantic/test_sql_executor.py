@@ -6,7 +6,7 @@
 3. **EXPLAIN 预检**：先让数据库判定语法与可执行性，再真跑
 4. 只读账号（部署约束，代码层无法保证，但在文档与配置里要求）
 
-DataSage 的 SQLValidator 也是"正则挡 DDL/DML + 对每条候选发真实 EXPLAIN"这个路子。
+参考实现的 SQLValidator 也是"正则挡 DDL/DML + 对每条候选发真实 EXPLAIN"这个路子。
 """
 
 import pytest

@@ -2,7 +2,7 @@
 
 四件事：
 1. **LLM 源守卫**：`source=llm` 的知识强制草稿，升已发布必须人工 —— 否则接 LLM
-   自动补知识时会直接污染权威层（DataSage 生产做法）
+   自动补知识时会直接污染权威层（反面案例）
 2. **新鲜度**：`reviewed_at + review_interval_days` 过期 → 待复核清单
 3. **级联失效**：知识引用的目标失效 → `needs_review=1`
 4. 复核动作：人工确认后刷新 `reviewed_at`

@@ -243,7 +243,7 @@ EXPLAIN 预检 → 只读账号。**一条都没有放宽**，判据直接复用
 
 #### 返回
 
-与 DataSage 的 `execute_sql` 同形：`data` / `columns` / `row_count` / `truncated` /
+与既有 `execute_sql` 同形：`data` / `columns` / `row_count` / `truncated` /
 `duration_ms` / `executed_sql` / `dialect` / `mode`（恒为 `"sync"`）。
 
 ```json
@@ -254,7 +254,7 @@ EXPLAIN 预检 → 只读账号。**一条都没有放宽**，判据直接复用
 ```
 
 - ★★ **`data` 的每一行是数组，不是字典** —— 值按 `columns` 逐位对齐，列名只在
-  `columns` 里出现一次（与 DataSage 一致）。消费端按**下标**取值，给字典行不会报错，
+  `columns` 里出现一次（与既有实现一致）。消费端按**下标**取值，给字典行不会报错，
   只会让表头正常而**每个单元格空白**。
 - ★ **`columns` 在 0 行时也有值**。`columns` 非空而 `data` 为空 = 「该条件下确实没有
   数据」，这是**结论**，不要以为自己写错了列名去猜着重试。

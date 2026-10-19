@@ -39,7 +39,7 @@ DWS_COLUMNS = [
     ("etl_time","datetime"),
 ]
 
-# dim 库维表真实列(取自 DataSage get_table_profile;(name, type) 顺序即 ordinal)
+# dim 库维表真实列(取自数据目录 get_table_profile;(name, type) 顺序即 ordinal)
 DIM_USER_COLUMNS = [
     ("user_id","varchar"),("user_name","varchar"),("gender","varchar"),("age_range","varchar"),
     ("about","varchar"),("image","varchar"),("background_image","varchar"),("is_nsfw_user","tinyint"),

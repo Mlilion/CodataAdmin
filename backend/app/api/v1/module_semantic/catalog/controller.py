@@ -67,12 +67,12 @@ async def table_detail_controller(
     return SuccessResponse(data=result, msg="查询成功")
 
 
-@CatalogRouter.post("/sync", summary="从 DataSage 同步物理元数据", response_model=ResponseSchema[SyncResultSchema])
+@CatalogRouter.post("/sync", summary="从 DataCatalog 同步物理元数据", response_model=ResponseSchema[SyncResultSchema])
 async def catalog_sync_controller(
     data: SyncRequestSchema,
     auth: Annotated[AuthSchema, Depends(AuthPermission(["module_semantic:catalog:sync"]))],
 ) -> JSONResponse:
-    result = await CatalogService(auth).sync_from_datasage(req=data)
+    result = await CatalogService(auth).sync_from_datacatalog(req=data)
     return SuccessResponse(data=result, msg=result.message)
 
 

@@ -342,7 +342,7 @@ async def test_upsert_table_tolerates_historical_duplicate_rows(wired):
 #
 # ★★ 为什么必须直接测公开入口：其余用例全都直接调 `_replace_columns` /
 # `_sync_tables` 这些私有方法，于是**没有任何测试证明它们被接上了**。审查实测：
-# 把 `sync_from_datasage` 里 `drafts += await self._sync_tables(...)` 那几行删掉，
+# 把 `sync_from_datacatalog` 里 `drafts += await self._sync_tables(...)` 那几行删掉，
 # 954 条测试照样全绿 —— 交付物是这两个入口，不是私有方法。
 # 这两条锚的是接线：①`changes_detected` 真被填 ②表消失真能被检出。
 
@@ -363,8 +363,8 @@ class _FakeCollector:
         return self._cols
 
 
-class _FakeDataSage:
-    """DataSage 侧的桩（异步方法）。"""
+class _FakeDataCatalog:
+    """数据目录侧的桩（异步方法）。"""
 
     def __init__(self, tables: list[dict], cols: dict[str, list[dict]]) -> None:
         self._tables, self._cols = tables, cols
@@ -425,8 +425,8 @@ async def test_collect_from_datasource_reports_detected_changes(wired, monkeypat
     )).scalar_one_or_none() is not None
 
 
-async def test_sync_from_datasage_reports_detected_changes(wired, monkeypatch):
-    """★★ 公开入口 `sync_from_datasage`：同上，锚的是"检测真的接在同步链路上"。"""
+async def test_sync_from_datacatalog_reports_detected_changes(wired, monkeypatch):
+    """★★ 公开入口 `sync_from_datacatalog`：同上，锚的是"检测真的接在同步链路上"。"""
     from app.api.v1.module_semantic.catalog import service as svc_mod
     from app.api.v1.module_semantic.catalog.schema import SyncRequestSchema
 
@@ -441,13 +441,13 @@ async def test_sync_from_datasage_reports_detected_changes(wired, monkeypatch):
     await db.flush()
 
     other = f"{w['tname']}_other"
-    fake = _FakeDataSage(
+    fake = _FakeDataCatalog(
         tables=[{"table_name": other, "table_type": "BASE TABLE"}],
         cols={other: _cols(("some_col", "int"))},
     )
-    monkeypatch.setattr(svc_mod, "DataSageClient", lambda: fake)
+    monkeypatch.setattr(svc_mod, "DataCatalogClient", lambda: fake)
 
-    result = await w["svc"].sync_from_datasage(
+    result = await w["svc"].sync_from_datacatalog(
         SyncRequestSchema(external_datasource_id=ds.external_id, db_names=["dws"])
     )
 

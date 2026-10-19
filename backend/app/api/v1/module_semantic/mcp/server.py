@@ -3,7 +3,7 @@
 ★ `description` 是外部 agent **唯一**能看到的说明 —— 它不是注释，是接口契约的一部分。
 写不清"什么时候用、needs_clarify 该怎么处理"，工具接上了也会被用错。
 
-传输用 Streamable HTTP + `stateless_http=True`（多 worker 安全，与 DataSage 一致）。
+传输用 Streamable HTTP + `stateless_http=True`（多 worker 安全）。
 """
 
 import json
@@ -407,11 +407,11 @@ async def execute_sql(sql: str, max_rows: int | str | None = None) -> str:
         return _error(e, error_type="execution_failed")
 
 
-# Streamable HTTP：stateless 多 worker 安全（与 DataSage 的做法一致）
+# Streamable HTTP：stateless 多 worker 安全
 mcp_http_app = mcp.http_app(path="/mcp", stateless_http=True, json_response=True)
 
 # ★ 内层 ASGI transport：直接注册成 Route 而非 app.mount()。
 # 实测 mount("/mcp", app) 会剥掉前缀让子应用收到空 path → 请求 /mcp/ 得 404；
 # mount("/") 又会拦截所有 REST 请求。取出 transport 自己注册两条路由最干净
-# （与 DataSage mcp_main.py 的做法一致）。
+# （与参考实现 mcp_main.py 的做法一致）。
 mcp_transport = mcp_http_app.routes[0].app

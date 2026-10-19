@@ -61,7 +61,7 @@ async def test_ensure_catalog_creates_dws(_db):
     assert {"order_id", "final_revenue", "is_primary_subscription"} <= {c.name for c in cols}
     # 重构删掉的列不该再登记 —— 口径 SQL 引用它们会在取数时炸
     assert not {"is_paid_order", "app_line", "end_reason"} & {c.name for c in cols}
-    # dim 库 4 张维表也已登记,列数与 DataSage 真实 schema 一致
+    # dim 库 4 张维表也已登记,列数与数据目录真实 schema 一致
     assert {"dim_user", "dim_country", "dim_date", "dim_bill_type"} <= set(ids)
     duser = (await _db.execute(select(CatTableModel).where(CatTableModel.id == ids["dim_user"]))).scalar_one()
     assert duser.db_name == "dim"

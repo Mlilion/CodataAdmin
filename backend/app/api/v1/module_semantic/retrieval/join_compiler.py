@@ -104,7 +104,7 @@ StarRocks **静默绑到那一侧**，join 的行集合被悄悄改掉。这与�
 
 ## 降级兜底只对聚合表达式成立，对条件必须抛
 
-`_qualify_expr_lenient` 解析失败原样返回（DataSage `compiler.py:20-43` 的行为，
+`_qualify_expr_lenient` 解析失败原样返回（参考实现 `compiler.py:20-43` 的行为，
 本模块沿用）。但**条件**原样发出是危险的：列没有 `t0.` 前缀时，两表都有该列
 StarRocks 报 ambiguous（还算响），只有 `t1` 有时会**静默绑到 t1 的同名列** ——
 过滤作用在了错的表上，数字变了没人知道。故 `compile_joined_sql` 在条件与聚合上
@@ -150,7 +150,7 @@ JSON，本项目全程按不可信对待（见 `join_planner` 关于白名单开
   不是"文本保真"。逐字节 diff `measure_expression` 与产物会看到差异，那是 AST
   路线的固有代价（换来的是下面那三条正则缺陷的消解）。
 
-`_qualify_expr_lenient` 借鉴 DataSage `compiler.py:20-43`（该文件是其引擎里最可移植的
+`_qualify_expr_lenient` 借鉴参考实现 `compiler.py:20-43`（该文件是其引擎里最可移植的
 部分：零 DB 依赖）。
 """
 

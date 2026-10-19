@@ -25,7 +25,7 @@ class DatasourceOutSchema(BaseSchema):
 
     model_config = ConfigDict(from_attributes=True)
 
-    external_id: str | None = Field(default=None, description="DataSage 数据源ID")
+    external_id: str | None = Field(default=None, description="DataCatalog 数据源ID")
     name: str = Field(..., description="数据源名称")
     ds_type: str | None = Field(default=None, description="类型")
     host: str | None = Field(default=None, description="主机")
@@ -116,7 +116,7 @@ class TableOutSchema(BaseSchema):
     model_config = ConfigDict(from_attributes=True)
 
     database_id: int = Field(..., description="所属库ID")
-    external_id: str | None = Field(default=None, description="DataSage 表ID")
+    external_id: str | None = Field(default=None, description="DataCatalog 表ID")
     db_name: str = Field(..., description="库名")
     name: str = Field(..., description="表名")
     table_type: str | None = Field(default=None, description="表类型")
@@ -147,9 +147,9 @@ class TableListItemSchema(BaseSchema):
 # 同步请求
 # ---------------------------------------------------------------------------
 class SyncRequestSchema(BaseModel):
-    """触发从 DataSage 同步"""
+    """触发从 DataCatalog 同步"""
 
-    external_datasource_id: str = Field(..., description="DataSage 数据源UUID")
+    external_datasource_id: str = Field(..., description="DataCatalog 数据源UUID")
     name: str | None = Field(default=None, description="数据源名称(本地登记用,可选)")
     db_names: list[str] | None = Field(default=None, description="指定库(为空则同步全部库的表结构需逐库,建议指定)")
 

@@ -242,7 +242,7 @@ async def test_did_you_mean_on_no_match(seeded):
 
 
 async def test_ambiguous_when_top_two_close(seeded):
-    """★ 歧义拒答（参考方案 §3③ DataSage 生产规则）：
+    """★ 歧义拒答（参考方案 §3③ 生产规则）：
     Top1/Top2 都 ≥0.9 且差 <0.03 → 要求用 code 精确指定，不硬猜。
     """
     # 造两个 name 都精确等于查询词的节点 → 两个 0.97，差 0
