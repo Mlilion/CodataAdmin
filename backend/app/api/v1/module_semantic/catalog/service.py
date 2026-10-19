@@ -10,7 +10,7 @@ from app.utils.crypto_util import decrypt, encrypt
 from .change_draft import ChangeDraft, ChangeKind, diff_columns
 from .collector import RedshiftCollector, StarRocksCollector
 from .crud import DatabaseCRUD, DatasourceCRUD, TableCRUD
-from .datasage_client import DataSageClient
+from .datacatalog_client import DataCatalogClient
 from .model import CatColumnModel, CatDatabaseModel, CatDatasourceModel, CatTableModel
 from .schema import (
     CollectRequestSchema,
@@ -35,7 +35,7 @@ def _to_int(v) -> int | None:
 
 
 class CatalogService:
-    """L1 物理目录服务（读 + 从 DataSage 同步）"""
+    """L1 物理目录服务（读 + 从 DataCatalog 同步）"""
 
     def __init__(self, auth: AuthSchema) -> None:
         self.auth = auth
@@ -195,10 +195,10 @@ class CatalogService:
                     + (f"，检出 {changed} 条上游变更" if changed else ""),
         )
 
-    # ---- 同步（从 DataSage 拉取，upsert）----
-    async def sync_from_datasage(self, req: SyncRequestSchema) -> SyncResultSchema:
+    # ---- 同步（从 DataCatalog 拉取，upsert）----
+    async def sync_from_datacatalog(self, req: SyncRequestSchema) -> SyncResultSchema:
         db = self.auth.db
-        client = DataSageClient()
+        client = DataCatalogClient()
         now = datetime.now()
 
         # 1. upsert 数据源（按 external_id 幂等）
@@ -208,7 +208,7 @@ class CatalogService:
         db_list = await client.list_databases(req.external_datasource_id)
         db_names = req.db_names or [d.get("name") for d in db_list if d.get("name")]
         if not db_names:
-            raise CustomException(msg="DataSage 未返回任何库；请确认 datasource_id 正确或指定 db_names")
+            raise CustomException(msg="DataCatalog 未返回任何库；请确认 datasource_id 正确或指定 db_names")
         db_meta = {d.get("name"): d for d in db_list}
 
         n_db = n_tbl = n_col = 0
@@ -254,7 +254,7 @@ class CatalogService:
             )
         )).scalar_one_or_none()
         if obj is None:
-            obj = CatDatasourceModel(external_id=external_id, name=name or external_id, source="datasage")
+            obj = CatDatasourceModel(external_id=external_id, name=name or external_id, source="datacatalog")
             self._stamp(obj)
             db.add(obj)
         if name:

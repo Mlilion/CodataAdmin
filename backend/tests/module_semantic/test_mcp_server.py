@@ -7,7 +7,7 @@
                                               └─ query_indicator   取数
 
 P4-4 的三个函数是实现体，本模块是协议层。用 FastMCP 的 Streamable HTTP
-（stateless，多 worker 安全 —— 与 DataSage 的做法一致）。
+（stateless，多 worker 安全）。
 
 ★ MCP 的 description 就是 agent 唯一能看到的说明。它不是注释，是接口契约的一部分：
 写不清"什么时候用、needs_clarify 该怎么处理"，接上了也会被用错。

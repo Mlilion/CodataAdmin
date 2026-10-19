@@ -58,7 +58,7 @@ python main.py upgrade --env=prod                    # Alembic
 
 | 路径 | 接口 | 适用 |
 |---|---|---|
-| 「同步」 | `POST /semantic/catalog/sync` | 元数据由 DataSage 托管，填 DataSage 数据源 UUID |
+| 「同步」 | `POST /semantic/catalog/sync` | 元数据由数据目录托管，填数据目录数据源 UUID |
 | 「采集」 | `POST /semantic/catalog/collect` | 自己登记数据源直连数仓扫 `information_schema` |
 
 自采集数据源支持 `starrocks` / `mysql` / `redshift`。Redshift 采集只扫 `information_schema`，默认数据库是 `dev`。

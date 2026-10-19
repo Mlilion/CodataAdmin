@@ -38,7 +38,7 @@ _FTS_SPAN = 0.19  # 0.50–0.69
 _VEC_BASE = 0.30
 _VEC_SPAN = 0.19  # 0.30–0.49，第四级，永不盖过前三路
 
-# 歧义判定（参考方案 §3③ DataSage 生产规则）
+# 歧义判定（参考方案 §3③ 生产规则）
 _AMBIGUOUS_FLOOR = 0.9
 _AMBIGUOUS_GAP = 0.03
 

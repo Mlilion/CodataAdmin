@@ -5994,7 +5994,7 @@
         "params": null,
         "affix": false,
         "redirect": null,
-        "description": "物理库/表/列(从DataSage同步)",
+        "description": "物理库/表/列(从数据目录同步)",
         "children": [
           {"name": "查询", "type": 3, "icon": null, "order": 1, "permission": "module_semantic:catalog:list", "route_name": null, "route_path": null, "component_path": null, "status": 0, "keep_alive": true, "hidden": false, "always_show": false, "title": "查询", "params": null, "affix": false, "redirect": null, "description": "", "client": "pc", "link": null, "is_iframe": false, "is_hide_tab": false, "active_path": null, "show_badge": false, "show_text_badge": null, "scope": "tenant"},
           {"name": "同步", "type": 3, "icon": null, "order": 2, "permission": "module_semantic:catalog:sync", "route_name": null, "route_path": null, "component_path": null, "status": 0, "keep_alive": true, "hidden": false, "always_show": false, "title": "同步", "params": null, "affix": false, "redirect": null, "description": "", "client": "pc", "link": null, "is_iframe": false, "is_hide_tab": false, "active_path": null, "show_badge": false, "show_text_badge": null, "scope": "tenant"}

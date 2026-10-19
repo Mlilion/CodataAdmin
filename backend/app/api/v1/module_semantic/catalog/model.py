@@ -9,7 +9,7 @@ from app.core.base_model import ModelMixin, TenantMixin, UserMixin
 class CatDatasourceModel(ModelMixin, TenantMixin, UserMixin):
     """物理数据源（L1 目录）
 
-    source=datasage：从 DataSage 同步的缓存（external_id 为 DataSage datasource UUID）。
+    source=datacatalog：从 DataCatalog 同步的缓存（external_id 为 DataCatalog datasource UUID）。
     source=manual：本地登记的数据源，含连接凭证，供平台自主采集(扫 information_schema)。
     """
 
@@ -17,7 +17,7 @@ class CatDatasourceModel(ModelMixin, TenantMixin, UserMixin):
     __table_args__: dict[str, str] = {"comment": "物理数据源目录表"}
     __loader_options__: list[str] = ["created_by", "updated_by", "deleted_by", "tenant_by"]
 
-    external_id: Mapped[str | None] = mapped_column(String(64), nullable=True, unique=True, index=True, comment="DataSage 数据源ID")
+    external_id: Mapped[str | None] = mapped_column(String(64), nullable=True, unique=True, index=True, comment="DataCatalog 数据源ID")
     name: Mapped[str] = mapped_column(String(100), nullable=False, comment="数据源名称")
     ds_type: Mapped[str | None] = mapped_column(String(30), nullable=True, comment="类型(starrocks/mysql...)")
     host: Mapped[str | None] = mapped_column(String(200), nullable=True, comment="主机")
@@ -26,7 +26,7 @@ class CatDatasourceModel(ModelMixin, TenantMixin, UserMixin):
     password_enc: Mapped[str | None] = mapped_column(String(500), nullable=True, comment="连接密码(加密存储)")
     default_database: Mapped[str | None] = mapped_column(String(100), nullable=True, comment="默认库")
     description: Mapped[str | None] = mapped_column(Text, nullable=True, comment="描述")
-    source: Mapped[str] = mapped_column(String(20), nullable=False, default="datasage", comment="来源(datasage/manual)")
+    source: Mapped[str] = mapped_column(String(20), nullable=False, default="datacatalog", comment="来源(datacatalog/manual)")
     synced_at: Mapped[datetime | None] = mapped_column(DateTime, nullable=True, comment="最近同步时间")
 
     @validates("name")
@@ -58,7 +58,7 @@ class CatTableModel(ModelMixin, TenantMixin, UserMixin):
     __loader_options__: list[str] = ["created_by", "updated_by", "deleted_by", "tenant_by"]
 
     database_id: Mapped[int] = mapped_column(ForeignKey("cat_database.id", ondelete="CASCADE", onupdate="CASCADE"), nullable=False, index=True, comment="所属库ID")
-    external_id: Mapped[str | None] = mapped_column(String(64), nullable=True, index=True, comment="DataSage 表ID")
+    external_id: Mapped[str | None] = mapped_column(String(64), nullable=True, index=True, comment="DataCatalog 表ID")
     db_name: Mapped[str] = mapped_column(String(100), nullable=False, index=True, comment="库名(冗余)")
     name: Mapped[str] = mapped_column(String(200), nullable=False, index=True, comment="表名")
     table_type: Mapped[str | None] = mapped_column(String(30), nullable=True, comment="表类型(BASE TABLE/VIEW)")
@@ -86,7 +86,7 @@ class CatColumnModel(ModelMixin, TenantMixin, UserMixin):
     __loader_options__: list[str] = ["created_by", "updated_by", "deleted_by", "tenant_by"]
 
     table_id: Mapped[int] = mapped_column(ForeignKey("cat_table.id", ondelete="CASCADE", onupdate="CASCADE"), nullable=False, index=True, comment="所属表ID")
-    external_id: Mapped[str | None] = mapped_column(String(64), nullable=True, comment="DataSage 列ID")
+    external_id: Mapped[str | None] = mapped_column(String(64), nullable=True, comment="DataCatalog 列ID")
     ordinal: Mapped[int] = mapped_column(Integer, nullable=False, default=0, comment="序号")
     name: Mapped[str] = mapped_column(String(100), nullable=False, comment="列名")
     col_type: Mapped[str | None] = mapped_column(String(100), nullable=True, comment="类型")

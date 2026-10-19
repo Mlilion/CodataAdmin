@@ -162,15 +162,15 @@ class Settings(BaseSettings):
     IP_LOCATION_ENABLE: bool = True  # 是否启用 IP 归属地查询（登录时对外发起 HTTP 请求）
 
     # ================================================= #
-    # ****************** DataSage 数据源 *************** #
+    # ****************** DataCatalog 数据源 ************* #
     # ================================================= #
-    # 语义中心 L1 物理目录从 DataSage catalog REST 拉取。线上实例 catalog 接口需 JWT 鉴权。
+    # 语义中心 L1 物理目录从 DataCatalog catalog REST 拉取。catalog 接口需 JWT 鉴权。
     # 同步时用户手动填数据源 UUID；鉴权二选一：账号密码(自动换JWT) 或 直接贴 JWT。
-    DATASAGE_BASE_URL: str = "https://datasage.flow.chat"  # DataSage 服务地址（线上）
-    DATASAGE_USERNAME: str = ""  # 服务账号（可用密码登录的账号；配了则自动换 JWT）
-    DATASAGE_PASSWORD: str = ""  # 服务账号密码
-    DATASAGE_TOKEN: str = ""  # 或直接贴一个 JWT（手动，会过期；与账号密码二选一）
-    DATASAGE_SYNC_TIMEOUT: float = 60.0  # 同步元数据的超时（首次回源 StarRocks 可能较慢）
+    DATACATALOG_BASE_URL: str = ""  # DataCatalog 服务地址（如 https://catalog.example.com）
+    DATACATALOG_USERNAME: str = ""  # 服务账号（可用密码登录的账号；配了则自动换 JWT）
+    DATACATALOG_PASSWORD: str = ""  # 服务账号密码
+    DATACATALOG_TOKEN: str = ""  # 或直接贴一个 JWT（手动，会过期；与账号密码二选一）
+    DATACATALOG_SYNC_TIMEOUT: float = 60.0  # 同步元数据的超时（首次回源 StarRocks 可能较慢）
 
     # ================================================= #
     # ********************* 日志配置 ******************* #

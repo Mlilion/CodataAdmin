@@ -9,7 +9,7 @@ SET @pid_semantic := (SELECT id FROM platform_menu WHERE route_name = 'Semantic'
 -- 菜单：物理目录
 INSERT INTO platform_menu
   (`uuid`,`is_deleted`,`created_time`,`updated_time`,`name`,`type`,`order`,`permission`,`icon`,`route_name`,`route_path`,`component_path`,`hidden`,`keep_alive`,`always_show`,`title`,`affix`,`client`,`is_iframe`,`is_hide_tab`,`show_badge`,`scope`,`status`,`description`,`parent_id`)
-SELECT UUID(),0,NOW(),NOW(),'物理目录',2,0,'module_semantic:catalog:list','ri:stack-line','SemanticCatalog','catalog','module_semantic/catalog/index',0,1,0,'物理目录',0,'pc',0,0,0,'tenant',0,'物理库/表/列(从DataSage同步)',@pid_semantic
+SELECT UUID(),0,NOW(),NOW(),'物理目录',2,0,'module_semantic:catalog:list','ri:stack-line','SemanticCatalog','catalog','module_semantic/catalog/index',0,1,0,'物理目录',0,'pc',0,0,0,'tenant',0,'物理库/表/列(从数据目录同步)',@pid_semantic
 FROM DUAL WHERE @exists_cat = 0 AND @pid_semantic IS NOT NULL;
 SET @pid_catalog := LAST_INSERT_ID();
 

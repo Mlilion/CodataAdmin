@@ -1,4 +1,4 @@
-<!-- 物理目录：语义中心 - L1 物理表/列浏览(只读, 从 DataSage 同步) -->
+<!-- 物理目录：语义中心 - L1 物理表/列浏览(只读, 从数据目录同步) -->
 <template>
   <div class="catalog-page flex gap-3 fa-full-height">
     <!-- 左：数据源 + 库 -->
@@ -79,10 +79,10 @@
     </FaDrawer>
 
     <!-- 同步对话框 -->
-    <FaDialog v-model="syncVisible" title="从 DataSage 同步物理元数据" width="560px" form-mode="create" confirm-text="开始同步" :confirm-loading="syncing" @cancel="syncVisible = false" @confirm="doSync">
+    <FaDialog v-model="syncVisible" title="从数据目录同步物理元数据" width="560px" form-mode="create" confirm-text="开始同步" :confirm-loading="syncing" @cancel="syncVisible = false" @confirm="doSync">
       <ElForm label-width="130px">
         <ElFormItem label="数据源 UUID" required>
-          <ElInput v-model="syncExternalId" placeholder="DataSage 数据源 UUID(从 DataSage 界面复制)" />
+          <ElInput v-model="syncExternalId" placeholder="数据目录数据源 UUID(从数据目录界面复制)" />
         </ElFormItem>
         <ElFormItem label="名称(可选)">
           <ElInput v-model="syncName" placeholder="本地登记的数据源名称,便于识别" />
@@ -91,7 +91,7 @@
           <ElInput v-model="syncDbNames" placeholder="逗号分隔,如 dws,ads;留空则同步该数据源全部库" />
         </ElFormItem>
         <ElAlert type="info" :closable="false" show-icon>
-          DataSage 走飞书登录,故这里手动填数据源 UUID(catalog 接口免鉴权)。首次同步某库会回源数仓,可能较慢;同步幂等,可重复执行。
+          数据目录服务通常走 SSO 登录,故这里手动填数据源 UUID(catalog 接口免鉴权)。首次同步某库会回源数仓,可能较慢;同步幂等,可重复执行。
         </ElAlert>
       </ElForm>
     </FaDialog>
@@ -106,7 +106,7 @@
         <ElTableColumn label="来源" width="90" align="center">
           <template #default="{ row }">
             <ElTag :type="row.source === 'manual' ? 'success' : 'info'" size="small">
-              {{ row.source === "manual" ? "自采集" : "DataSage" }}
+              {{ row.source === "manual" ? "自采集" : "数据目录" }}
             </ElTag>
           </template>
         </ElTableColumn>
@@ -128,7 +128,7 @@
               <ElButton size="small" link type="primary" @click="openEditDs(row)">编辑</ElButton>
               <ElButton size="small" link type="danger" @click="doDeleteDs(row)">删除</ElButton>
             </template>
-            <span v-else class="text-secondary text-xs">由 DataSage 同步</span>
+            <span v-else class="text-secondary text-xs">由数据目录同步</span>
           </template>
         </ElTableColumn>
       </ElTable>
@@ -271,7 +271,7 @@ async function openDetail(id: number) {
   detailVisible.value = true;
 }
 
-// 同步(DataSage 走飞书登录,手动填数据源 UUID;catalog GET 免鉴权)
+// 同步(数据目录走 SSO 登录,手动填数据源 UUID;catalog GET 免鉴权)
 const syncVisible = ref(false);
 const syncing = ref(false);
 const syncExternalId = ref<string>();
@@ -282,7 +282,7 @@ function openSync() {
 }
 async function doSync() {
   if (!syncExternalId.value?.trim()) {
-    ElMessage.warning("请填写 DataSage 数据源 UUID");
+    ElMessage.warning("请填写数据目录数据源 UUID");
     return;
   }
   syncing.value = true;
@@ -301,7 +301,7 @@ async function doSync() {
     await loadDatasources();
     await loadDatabases();
   } catch {
-    ElMessage.error("同步失败,请检查 DataSage 连接与数据源 UUID");
+    ElMessage.error("同步失败,请检查数据目录连接与数据源 UUID");
   } finally {
     syncing.value = false;
   }

@@ -52,7 +52,7 @@ from app.core.database import async_db_session
 
 
 def _cols(*names: str) -> list[dict]:
-    """构造 DataSage/自采集那一侧的列载荷。"""
+    """构造数据目录/自采集那一侧的列载荷。"""
     return [
         {"name": n, "ordinal": i + 1, "col_type": "varchar", "nullable": True}
         for i, n in enumerate(names)

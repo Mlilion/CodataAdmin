@@ -92,7 +92,7 @@ def _rows_as_arrays(rows: list[dict], columns: list[str]) -> list[list[Any]]:
     症状看起来像"数仓没数据"，极难归因到序列化格式。
 
     ★ 也不能靠"Codata 加个分支"绕过：它的 parser 按**工具名**匹配
-    （`datasage_parser.py:55`，注释明确说这样任何服务端名都能用），而我们的工具同样
+    （`parser.py:55`，注释明确说这样任何服务端名都能用），而我们的工具同样
     叫 `execute_sql` —— 同一个 parser 同时处理两个服务端，没有分支可加。
 
     ## 为什么按 `columns` 而不是 `row.keys()`
@@ -116,14 +116,14 @@ async def run_raw_sql(
     max_rows: int = _DEFAULT_MAX_ROWS,
     timeout: int = _DEFAULT_TIMEOUT,
 ) -> dict[str, Any]:
-    """守卫 → 加 LIMIT → EXPLAIN 预检 → 真跑。返回 DataSage `execute_sql` 同形的 dict。
+    """守卫 → 加 LIMIT → EXPLAIN 预检 → 真跑。返回与 `execute_sql` 同形的 dict。
 
     ★ 与 `execute_readonly` 的**唯一**行为差异：守卫失败**不抛异常**，转结构化返回。
     理由：那里的 SQL 是服务端自己编译的，守卫失败属"不该发生"，抛出来才对；这里的
     SQL 是 agent 手写的，写错是意料之中，它需要读到原因去改。抛出去只会在 MCP 层变成
     一个 internal error，agent 拿不到可行动的信息。
 
-    `error_type` 沿用 DataSage 的取值，让既有 agent 侧的处置逻辑不用改：
+    `error_type` 沿用既有约定的取值，让 agent 侧的处置逻辑不用改：
     `permission_denied`（守卫拒绝）/ `syntax_error`（EXPLAIN 不过）/
     `execution_failed`（真跑失败）。
     """
@@ -149,7 +149,7 @@ async def run_raw_sql(
         return {**base, "error": f"SQL 预检失败: {e}", "error_type": "syntax_error"}
 
     # 计时只裹真正的查询：EXPLAIN 预检与守卫不算"查了多久"，
-    # 而 DataSage 的 duration_ms 也是查询本身的耗时
+    # 而既有的 duration_ms 也是查询本身的耗时
     started = time.monotonic()
     try:
         rows = list(await run_in_threadpool(connection.query, final_sql, timeout) or [])
@@ -168,7 +168,7 @@ async def run_raw_sql(
         "columns": columns,
         "row_count": len(rows),
         "truncated": len(rows) >= max_rows,
-        # DataSage 的 sync 返回带它，Codata 的 _sql_result_from_payload 会读它填进
+        # 既有的 sync 返回带它，Codata 的 _sql_result_from_payload 会读它填进
         # artifact —— 此前我们没给，那里就一直是 null
         "duration_ms": duration_ms,
         "executed_sql": final_sql,
