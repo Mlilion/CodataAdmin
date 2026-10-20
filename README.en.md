@@ -6,6 +6,10 @@ English | [简体中文](./README.md)
 
 > **Companion project**: This repository is the semantic-model companion to the [Codata](https://github.com/Mlilion/Codata) project, focused on semantic modeling, release snapshots, and trusted querying over MCP. See [Mlilion/Codata](https://github.com/Mlilion/Codata) for the platform and agent capabilities.
 
+## Online Demo
+
+The demo URL and demo credentials are shared in the community group. Scan the QR code in [Contact](#contact) to join and request access. If the group QR code has expired, add the author on WeChat for an invitation.
+
 ## Positioning
 
 CodataAdmin is not an admin template. Its core is the **semantic model**. It answers three questions:

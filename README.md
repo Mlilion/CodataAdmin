@@ -6,6 +6,10 @@
 
 > **配套项目**：本仓库是 [Codata](https://github.com/Mlilion/Codata) 项目的配套语义模型项目，专注语义建模、发布快照与 MCP 可信取数；平台与 Agent 能力请见 [Mlilion/Codata](https://github.com/Mlilion/Codata)。
 
+## 在线体验 Demo
+
+在线体验地址及体验账号在交流群内提供，请前往[联系方式](#联系方式)扫码进群获取。若群二维码已过期，可添加作者微信，由作者邀请入群。
+
 ## 项目定位
 
 CodataAdmin 的核心不是后台管理，而是**语义模型**。它要回答三个问题：
