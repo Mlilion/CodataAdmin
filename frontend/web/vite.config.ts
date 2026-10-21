@@ -11,7 +11,6 @@ import AutoImport from "unplugin-auto-import/vite";
 import ElementPlus from "unplugin-element-plus/vite";
 import { ElementPlusResolver } from "unplugin-vue-components/resolvers";
 import tailwindcss from "@tailwindcss/vite";
-import vitePluginStart from "./build/vitePluginStart";
 import { name, version, engines, dependencies, devDependencies } from "./package.json";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
@@ -196,7 +195,6 @@ export default ({ mode }: { mode: string }) => {
     },
     plugins: [
       vue(),
-      vitePluginStart(),
       tailwindcss(),
       AutoImport({
         imports: ["vue", "vue-router", "pinia", "@vueuse/core", "vue-i18n"],

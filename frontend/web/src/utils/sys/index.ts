@@ -6,7 +6,8 @@ import { upgradeLogList } from "@/mock/upgrade/changeLog";
 import { ElNotification } from "element-plus";
 import { useUserStore } from "@stores";
 import { StorageConfig } from "@utils";
-import { BANNER } from "../../../build/banner";
+
+const BANNER = "CodataAdmin";
 
 // -----------------------------
 // Console banner：ANSI 转义码生成网站 https://patorjk.com/software/taag/
